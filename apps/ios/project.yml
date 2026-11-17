@@ -1,0 +1,52 @@
+name: AgentBeacon
+options:
+  bundleIdPrefix: dev.andeplane
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+packages:
+  AgentBeacon:
+    path: ../..
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: 0.3.1
+    CURRENT_PROJECT_VERSION: 5
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ""
+targets:
+  AgentBeacon:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+      - path: ../../Sources/AgentBeaconCore/Models.swift
+      - path: ../../Sources/AgentBeaconCore/AnalyticsModels.swift
+      - path: Assets.xcassets
+        optional: true
+    dependencies:
+      - package: AgentBeacon
+        product: AgentBeaconCompanion
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.andeplane.AgentBeacon
+        PRODUCT_NAME: Agent Beacon
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MACCATALYST: NO
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: Agent Beacon
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
+        INFOPLIST_KEY_NSCameraUsageDescription: Scan the pairing code shown by Agent Beacon on your Mac.
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: Connect securely to your paired Mac to see your coding agents and their statistics.
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+schemes:
+  AgentBeacon:
+    build:
+      targets:
+        AgentBeacon: all
