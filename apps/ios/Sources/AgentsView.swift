@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AgentsView: View {
-  @ObservedObject var model: BeaconPhoneModel
+  @ObservedObject var model: SwarmbellPhoneModel
   @State private var query = ""
   var body: some View {
     NavigationStack {
@@ -26,7 +26,7 @@ struct AgentsView: View {
                 Section {
                   if query.isEmpty {
                     ContentUnavailableView(
-                      "No sessions observed", systemImage: "antenna.radiowaves.left.and.right",
+                      "No sessions observed", systemImage: "bell",
                       description: Text(
                         "Your Mac has not reported any sessions. Source coverage is listed below."))
                   } else {
@@ -74,12 +74,12 @@ struct AgentsView: View {
             ContentUnavailableView {
               Label(
                 model.isPaired ? "Waiting for your Mac" : "Your agents, together",
-                systemImage: "antenna.radiowaves.left.and.right")
+                systemImage: "bell")
             } description: {
               Text(
                 model.isPaired
-                  ? "Keep Agent Beacon running on your paired Mac. Connect this iPhone to the same local network."
-                  : "Pair with Agent Beacon on your Mac to see which agents are working and which need you."
+                  ? "Keep Swarmbell running on your paired Mac. Connect this iPhone to the same local network."
+                  : "Pair with Swarmbell on your Mac to see which agents are working and which need you."
               )
             } actions: {
               NavigationLink("\(model.isPaired ? "Connection details" : "Pair your Mac")") {
@@ -90,7 +90,7 @@ struct AgentsView: View {
           }
         }
       }
-      .navigationTitle("Agent Beacon")
+      .navigationTitle("Swarmbell")
     }
   }
 
@@ -127,7 +127,7 @@ struct AgentsView: View {
 }
 
 struct ConnectionSummary: View {
-  @ObservedObject var model: BeaconPhoneModel
+  @ObservedObject var model: SwarmbellPhoneModel
   var now: Date
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
@@ -154,7 +154,7 @@ struct ConnectionSummary: View {
 
 private struct AgentDetailView: View {
   let agent: AgentRecord
-  @ObservedObject var model: BeaconPhoneModel
+  @ObservedObject var model: SwarmbellPhoneModel
   var body: some View {
     Form {
       Section {
@@ -172,7 +172,7 @@ private struct AgentDetailView: View {
         Text(agent.sessionID).font(.footnote.monospaced()).textSelection(.enabled)
         ShareLink("Share session ID", item: agent.sessionID)
         Text(
-          "Continue the conversation in its original app on your Mac. Agent Beacon on iPhone shows status and statistics."
+          "Continue the conversation in its original app on your Mac. Swarmbell on iPhone shows status and statistics."
         )
         .font(.footnote).foregroundStyle(.secondary)
       }

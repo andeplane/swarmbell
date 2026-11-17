@@ -5,8 +5,8 @@ This backend boundary exports the native app's existing `AgentMonitor` result af
 ## Source-build command
 
 ```sh
-swift build -j 2 --product agent-beacon
-.build/debug/agent-beacon --read-current
+swift build -j 2 --product swarmbell
+.build/debug/swarmbell --read-current
 ```
 
 The cache defaults to `~/Library/Application Support/AgentBeacon/snapshot-cache/`. `--read-current --cache-directory /absolute/private/cache` selects another existing cache for a reader. Other collection/setup flags cannot be combined with `--read-current`. Unknown flags and invalid combinations fail before collector setup.
@@ -57,5 +57,5 @@ The latest cache contains current titles, project paths and navigation metadata.
 
 - `swift test -j 2`: 59 core tests (including 13 focused cache tests) and four companion tests pass. Evidence: `work/snapshot-cache-all-tests.log`.
 - The cache tests cover stable collector identity across runs, new run/sequence behavior, unchanged provider/agent evidence and subsecond timestamps, stale/clock-skew cases, identity and lease tampering, concurrent atomic reads, duplicate writers, bounds, unsafe modes, symlinks, hard links, FIFOs and publication failure sequence gaps.
-- `python3 Tests/cli_read_current.py .build/debug/agent-beacon` passes against synthetic private caches. It checks current/stale/missing/invalid cases, unchanged cache bytes/mtimes, no created history or writer files, rejected setup combinations and no provider execution through PATH traps. It accesses no real collector, user cache, credentials or history.
+- `python3 Tests/cli_read_current.py .build/debug/swarmbell` passes against synthetic private caches. It checks current/stale/missing/invalid cases, unchanged cache bytes/mtimes, no created history or writer files, rejected setup combinations and no provider execution through PATH traps. It accesses no real collector, user cache, credentials or history.
 - Native app source builds, strict Swift formatting lint and diff checks pass. The running installed app was not stopped, launched, updated or queried for live ingestion acceptance.

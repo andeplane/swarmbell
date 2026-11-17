@@ -1,4 +1,4 @@
-# Agent Beacon iPhone companion — 16 November 2026
+# Swarmbell iPhone companion — 16 November 2026
 
 The Mac owns one existing `AgentMonitor` and history store. Optional sharing publishes that monitor's actual snapshots after each refresh. Connected phones receive week/month analytics from the same history store, refreshed at most every 30 seconds. No second CLI collector is started.
 
@@ -17,8 +17,8 @@ The server pushes four-byte-length-prefixed versioned JSON envelopes, bounded at
 - 46 existing core tests and four new pairing/framing tests pass (`work/companion-tests.log`).
 - Isolated loopback TLS smoke authenticated matching keys and rejected a wrong key with `bad MAC`; no real agent data was used.
 - Mac, simulator and signed physical iPhone builds pass. The Mac bundle passes strict codesign verification. Source formatting and diff checks pass.
-- Mac 0.3.0 is installed at `~/Applications/Agent Beacon.app`. Its sharing switch was enabled through the actual native UI, the listener reported ready, and the private pairing sheet is visible. Existing Cursor hook paths remain at the installed helper.
-- Signed iPhone app `dev.andeplane.AgentBeacon` was installed successfully on the test iPhone. Automatic launch was blocked by the phone being locked. Development profile expiration is 30 September 2027; this is not an App Store release.
+- Mac 0.3.0 is installed at `~/Applications/Swarmbell.app`. Its sharing switch was enabled through the actual native UI, the listener reported ready, and the private pairing sheet is visible. Existing Cursor hook paths remain at the installed helper.
+- Signed iPhone app `dev.andeplane.Swarmbell` was installed successfully on the test iPhone. Automatic launch was blocked by the phone being locked. Development profile expiration is 30 September 2027; this is not an App Store release.
 - Final bundle inspection caught Xcode omitting the Bonjour service array from generated build settings. An explicit `Info.plist` now supplies the array, and the corrected signed bundle was rebuilt and inspected successfully. After the user reconnected the phone, corrected version 0.3.1/build 5 installed and launched successfully. Bundle inspection verified the Bonjour service array and AppIcon. The earlier incomplete build was replaced.
 - Simulator code compiles, but native visual review was unavailable because Computer Use did not resolve Simulator. This is not claimed as a rendered-layout pass.
 - The user scanned the QR code. After the corrected update, the Mac native Settings displayed one authenticated connected phone and the user explicitly confirmed “Live agents are showing.” This establishes physical live agent delivery. Phone statistics, camera-denial recovery and all reconnection scenarios are not yet separately accepted.

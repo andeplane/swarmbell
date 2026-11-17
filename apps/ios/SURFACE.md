@@ -1,6 +1,6 @@
 # iPhone companion
 
-Mode: Operate. Extends Agent Beacon's existing native visual direction.
+Mode: Operate. Extends Swarmbell's existing native visual direction.
 
 The first screen immediately distinguishes needs-you from working sessions.
 Native navigation lists carry title, harness/project, state, freshness and source

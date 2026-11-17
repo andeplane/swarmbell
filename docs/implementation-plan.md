@@ -1,4 +1,4 @@
-# Agent Beacon implementation plan
+# Swarmbell implementation plan
 
 ## Primary goal
 
@@ -22,7 +22,7 @@ Guard: a new app-server process, a file timestamp, a running OS process, or an o
 
 **How this serves the primary goal:** Both menu bar and shortcut panel need one consistent answer about activity and attention.
 
-Status: initial implementation complete in `AgentBeaconCore`; CLI test harness included. Native Swift, no external packages, no hosted service. Use `Models.swift` and `AgentMonitor` as the shared contract. Poll sources concurrently on a five-second start-to-start cadence, bound child-process time and output, and publish atomic snapshots. Keep host/harness/session identity, source health, freshness, reason, workspace, title, and navigation capability.
+Status: initial implementation complete in `SwarmbellCore`; CLI test harness included. Native Swift, no external packages, no hosted service. Use `Models.swift` and `AgentMonitor` as the shared contract. Poll sources concurrently on a five-second start-to-start cadence, bound child-process time and output, and publish atomic snapshots. Keep host/harness/session identity, source health, freshness, reason, workspace, title, and navigation capability.
 
 Count working plus needs-you as active. Show ordinary idle and completed sessions separately. Default headline counts exclude child agents; retain them for a later disclosure or setting. This default is proposed, not a confirmed user preference. Unknown/missing/stale records never become fabricated needs-you or finished records.
 

@@ -1,4 +1,11 @@
-# Validation — 15 November 2026
+# Validation
+
+## Swarmbell rebrand — 17 November 2026
+
+Swarmbell 0.4.0/build 7 renames the app, modules, source symbols, CLI and iPhone companion. Existing bundle/storage/Keychain/transport/hook identifiers are retained deliberately for compatibility. All 79 Swift tests, six geometry checks, isolated CLI snapshot-cache checks, strict formatting and universal release build passed. Both macOS executables contain arm64 and x86_64 slices. The app is ad-hoc signed and unnotarized; deep strict code-sign verification passed. iOS simulator build passed. Native acceptance verified Swarmbell launching, fresh snapshot publication, preserved statistics history and closing Statistics. The iPhone rebrand was checked in a dedicated simulator in light and dark appearances; no physical-phone update was performed. The website passed desktop/mobile interaction checks and a reviewer scored its public-source copy and mobile type/control fixes resolved. A Codex async-question regression was reproduced from passive live metadata and covered by new tests; the original question resolved before the final live verification.
+
+## Earlier Agent Beacon validation history
+
 
 Repository: `~/projects/personal/swarmbell`.
 
@@ -18,7 +25,7 @@ Version 0.3.0 adds a paired read-only iPhone companion and optional encrypted Ma
 
 - `swift test -j 2`: **46 tests passed**, including source failures, Codex desktop revisions/leases, Claude Desktop navigation/ownership, hook installation, persistence, simultaneous writers, time weighting, DST, exact range edges and statistics version isolation. Log: `work/review-tests.log`.
 - Strict Swift formatting lint and `git diff --check`: passed.
-- App bundle build and `codesign --verify --deep --strict`: passed. Version 0.2.1 is installed at `dist/Agent Beacon.app`. Build log: `work/review-app-build.log`.
+- App bundle build and `codesign --verify --deep --strict`: passed. Version 0.2.1 is installed at `dist/Swarmbell.app`. Build log: `work/review-app-build.log`.
 - Cursor event files remain private (`0600` in a `0700` directory) and can be collected/read while the Mac is locked. A lock-dependent file-protection option discovered in the locked-session test was removed.
 
 ## Live evidence

@@ -40,7 +40,7 @@ Shipped code explicitly constructs `codex://threads/<UUID>` with an optional `ho
 
 `beforeSubmitPrompt` starts work. `stop.status` distinguishes completion, cancellation, and error. `afterAgentResponse` can precede more work, so it is not treated as completion. A late stop for a previous generation cannot overwrite a newer turn. Missing events eventually make activity uncertain. No documented hook found establishes every native permission/question wait; attempts to run tools must not be mistaken for confirmed approval waits.
 
-The existing user hooks configuration contains Orca and claude-mem integrations. Agent Beacon's installer has now merged six passive lifecycle commands, preserved the existing entries and unknown fields, and verified an exact original backup under `~/Library/Application Support/AgentBeacon/cursor-hook-backups/`. Settings and the CLI support ownership-only removal. Setup is idempotent, checks for concurrent edits, preserves permissions, rejects malformed settings/symlinks, and never replaces other plugins' commands.
+The existing user hooks configuration contains Orca and claude-mem integrations. Swarmbell's installer has now merged six passive lifecycle commands, preserved the existing entries and unknown fields, and verified an exact original backup under `~/Library/Application Support/AgentBeacon/cursor-hook-backups/`. Settings and the CLI support ownership-only removal. Setup is idempotent, checks for concurrent edits, preserves permissions, rejects malformed settings/symlinks, and never replaces other plugins' commands.
 
 [Cursor deeplinks](https://cursor.com/docs/reference/deeplinks) do not establish reopening an existing local chat. [CLI parameters](https://cursor.com/docs/cli/reference/parameters) document a resume option, but desktop/CLI ID compatibility has not been established. The prototype does not claim desktop-chat activation.
 
@@ -51,3 +51,25 @@ The existing user hooks configuration contains Orca and claude-mem integrations.
 ## Evidence boundaries
 
 Fixture tests demonstrate parsing, transitions, transport behavior, history weighting and failures. Live Claude and Codex desktop polling demonstrate actual local integration. Cursor hook smoke tests use synthetic sessions in an isolated spool; the global lifecycle configuration is installed with preservation/backup checks. A native app bundle is signed ad hoc and has run with real sessions and a dashboard. Exhaustive cross-harness coverage, all original-thread routes, notarized distribution and everyday performance remain unverified. No login item, daemon, approval setting, or app-server setting was changed.
+
+
+## Codex asynchronous input — Swarmbell 0.4.0
+
+The installed desktop version 26.1103.60933 can show “Needs input” while its
+normal runtime flags and requests array are empty. Its sidebar derives
+unanswered asynchronous questions from agent-message question items in the
+latest in-progress turn, subtracting accepted user or steering-message reply
+identifiers. Runtime flags alone miss this case.
+
+Swarmbell mirrors that derivation for both legacy turn arrays and canonical
+turn-history ordering. It retains only bounded turn/item identities, question
+counts, statuses and accepted reply identifiers. Question wording, answers,
+prompts, transcripts and tool bodies are not retained by the projection. It
+handles nested changes, removal, accepted replies, turn completion, invalidation
+and resynchronization. Original harnesses retain all response/approval ownership.
+
+A passive live observation reproduced an unanswered question with empty runtime
+flags and requests; the corresponding sanitized metadata fixture now maps to
+needs-you. The original live question had resolved by the final check, so this
+is not a claim that a still-pending real request was acted on or answered.
+The adapter remains private, version-bound and partial.

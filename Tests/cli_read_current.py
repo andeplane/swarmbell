@@ -9,7 +9,7 @@ import sys
 import tempfile
 
 binary = str(Path(sys.argv[1]).resolve())
-with tempfile.TemporaryDirectory(prefix="beacon-read-current-") as temporary:
+with tempfile.TemporaryDirectory(prefix="swarmbell-read-current-") as temporary:
     root = Path(temporary).resolve()
     cache = root / "cache"
     cache.mkdir(mode=0o700)

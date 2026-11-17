@@ -22,7 +22,7 @@ private final class CaptureBox: @unchecked Sendable {
 final class ScannerController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
   var onCode: ((String) -> Void)?
   private let capture = CaptureBox()
-  private let captureQueue = DispatchQueue(label: "AgentBeacon.Camera")
+  private let captureQueue = DispatchQueue(label: "Swarmbell.Camera")
   private var preview: AVCaptureVideoPreviewLayer?
   private var accepted = false
   private var isStopped = false
@@ -106,7 +106,8 @@ final class ScannerController: UIViewController, AVCaptureMetadataOutputObjectsD
     from connection: AVCaptureConnection
   ) {
     guard let object = metadataObjects.first as? AVMetadataMachineReadableCodeObject,
-      let code = object.stringValue, code.hasPrefix("agentbeacon://pair"), code.utf8.count < 4096
+      let code = object.stringValue, code.utf8.count < 4096,
+      code.hasPrefix("swarmbell://pair") || code.hasPrefix("agentbeacon://pair")
     else { return }
     Task { @MainActor [weak self] in
       guard let self, !accepted else { return }

@@ -2,23 +2,23 @@
 import PackageDescription
 
 let package = Package(
-  name: "AgentBeacon",
+  name: "Swarmbell",
   platforms: [.macOS(.v13), .iOS(.v17)],
   products: [
-    .library(name: "AgentBeaconCore", targets: ["AgentBeaconCore"]),
-    .library(name: "AgentBeaconCompanion", targets: ["AgentBeaconCompanion"]),
-    .executable(name: "agent-beacon", targets: ["AgentBeaconCLI"]),
-    .executable(name: "agent-beacon-app", targets: ["AgentBeaconApp"]),
+    .library(name: "SwarmbellCore", targets: ["SwarmbellCore"]),
+    .library(name: "SwarmbellCompanion", targets: ["SwarmbellCompanion"]),
+    .executable(name: "swarmbell", targets: ["SwarmbellCLI"]),
+    .executable(name: "swarmbell-app", targets: ["SwarmbellApp"]),
   ],
   targets: [
     .systemLibrary(name: "CSQLite"),
-    .target(name: "AgentBeaconCore", dependencies: ["CSQLite"]),
-    .target(name: "AgentBeaconCompanion"),
-    .executableTarget(name: "AgentBeaconCLI", dependencies: ["AgentBeaconCore"]),
+    .target(name: "SwarmbellCore", dependencies: ["CSQLite"]),
+    .target(name: "SwarmbellCompanion"),
+    .executableTarget(name: "SwarmbellCLI", dependencies: ["SwarmbellCore"]),
     .executableTarget(
-      name: "AgentBeaconApp", dependencies: ["AgentBeaconCore", "AgentBeaconCompanion"]),
-    .testTarget(name: "AgentBeaconCoreTests", dependencies: ["AgentBeaconCore"]),
-    .testTarget(name: "AgentBeaconCompanionTests", dependencies: ["AgentBeaconCompanion"]),
+      name: "SwarmbellApp", dependencies: ["SwarmbellCore", "SwarmbellCompanion"]),
+    .testTarget(name: "SwarmbellCoreTests", dependencies: ["SwarmbellCore"]),
+    .testTarget(name: "SwarmbellCompanionTests", dependencies: ["SwarmbellCompanion"]),
   ],
   swiftLanguageModes: [.v6]
 )

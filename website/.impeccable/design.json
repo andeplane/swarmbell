@@ -1,0 +1,333 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-17T15:33:48.067139+00:00",
+  "title": "Design System: Swarmbell Website",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "neutral",
+        "displayName": "Warm Paper",
+        "tonalRamp": [
+          "oklch(15% 0.0033 99.98)",
+          "oklch(26% 0.0061 99.98)",
+          "oklch(38% 0.0084 99.98)",
+          "oklch(49% 0.0093 99.98)",
+          "oklch(61% 0.0093 99.98)",
+          "oklch(72% 0.0079 99.98)",
+          "oklch(84% 0.0051 99.98)",
+          "oklch(95% 0.0017 99.98)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Forest Ink",
+        "tonalRamp": [
+          "oklch(15% 0.0062 151.77)",
+          "oklch(26% 0.0116 151.77)",
+          "oklch(38% 0.0161 151.77)",
+          "oklch(49% 0.0178 151.77)",
+          "oklch(61% 0.0178 151.77)",
+          "oklch(72% 0.0152 151.77)",
+          "oklch(84% 0.0098 151.77)",
+          "oklch(95% 0.0032 151.77)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Quiet Olive",
+        "tonalRamp": [
+          "oklch(15% 0.0060 132.62)",
+          "oklch(26% 0.0111 132.62)",
+          "oklch(38% 0.0154 132.62)",
+          "oklch(49% 0.0172 132.62)",
+          "oklch(61% 0.0172 132.62)",
+          "oklch(72% 0.0146 132.62)",
+          "oklch(84% 0.0094 132.62)",
+          "oklch(95% 0.0031 132.62)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Ochre Emphasis",
+        "tonalRamp": [
+          "oklch(15% 0.0316 81.46)",
+          "oklch(26% 0.0588 81.46)",
+          "oklch(38% 0.0814 81.46)",
+          "oklch(49% 0.0904 81.46)",
+          "oklch(61% 0.0904 81.46)",
+          "oklch(72% 0.0769 81.46)",
+          "oklch(84% 0.0497 81.46)",
+          "oklch(95% 0.0163 81.46)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Olive Line",
+        "tonalRamp": [
+          "oklch(15% 0.0062 113.85)",
+          "oklch(26% 0.0115 113.85)",
+          "oklch(38% 0.0159 113.85)",
+          "oklch(49% 0.0176 113.85)",
+          "oklch(61% 0.0176 113.85)",
+          "oklch(72% 0.0150 113.85)",
+          "oklch(84% 0.0097 113.85)",
+          "oklch(95% 0.0032 113.85)"
+        ]
+      },
+      "soft": {
+        "role": "neutral",
+        "displayName": "Soft Olive",
+        "tonalRamp": [
+          "oklch(15% 0.0061 113.83)",
+          "oklch(26% 0.0113 113.83)",
+          "oklch(38% 0.0157 113.83)",
+          "oklch(49% 0.0174 113.83)",
+          "oklch(61% 0.0174 113.83)",
+          "oklch(72% 0.0148 113.83)",
+          "oklch(84% 0.0096 113.83)",
+          "oklch(95% 0.0031 113.83)"
+        ]
+      },
+      "white": {
+        "role": "neutral",
+        "displayName": "Warm White",
+        "tonalRamp": [
+          "oklch(15% 0.0019 95.10)",
+          "oklch(26% 0.0035 95.10)",
+          "oklch(38% 0.0048 95.10)",
+          "oklch(49% 0.0054 95.10)",
+          "oklch(61% 0.0054 95.10)",
+          "oklch(72% 0.0046 95.10)",
+          "oklch(84% 0.0030 95.10)",
+          "oklch(95% 0.0010 95.10)"
+        ]
+      },
+      "dark": {
+        "role": "neutral",
+        "displayName": "Deep Forest",
+        "tonalRamp": [
+          "oklch(15% 0.0076 155.69)",
+          "oklch(26% 0.0141 155.69)",
+          "oklch(38% 0.0196 155.69)",
+          "oklch(49% 0.0217 155.69)",
+          "oklch(61% 0.0217 155.69)",
+          "oklch(72% 0.0185 155.69)",
+          "oklch(84% 0.0120 155.69)",
+          "oklch(95% 0.0039 155.69)"
+        ]
+      },
+      "bell-honey": {
+        "role": "primary",
+        "displayName": "Honey Bell",
+        "tonalRamp": [
+          "oklch(15% 0.0460 88.03)",
+          "oklch(26% 0.0854 88.03)",
+          "oklch(38% 0.1182 88.03)",
+          "oklch(49% 0.1314 88.03)",
+          "oklch(61% 0.1314 88.03)",
+          "oklch(72% 0.1117 88.03)",
+          "oklch(84% 0.0723 88.03)",
+          "oklch(95% 0.0236 88.03)"
+        ]
+      },
+      "bell-forest": {
+        "role": "neutral",
+        "displayName": "Bell Forest",
+        "tonalRamp": [
+          "oklch(15% 0.0093 168.54)",
+          "oklch(26% 0.0173 168.54)",
+          "oklch(38% 0.0240 168.54)",
+          "oklch(49% 0.0267 168.54)",
+          "oklch(61% 0.0267 168.54)",
+          "oklch(72% 0.0227 168.54)",
+          "oklch(84% 0.0147 168.54)",
+          "oklch(95% 0.0048 168.54)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Hero display",
+        "purpose": "The large opening statement."
+      },
+      "emphasis": {
+        "displayName": "Italic emphasis",
+        "purpose": "Expressive phrases and the quiet preview aside."
+      },
+      "label": {
+        "displayName": "Readable metadata",
+        "purpose": "Supporting labels; small desktop exceptions are not reusable tokens."
+      }
+    },
+    "shadows": [
+      {
+        "name": "preview-ambient",
+        "value": "0 26px 65px -30px #30372c40",
+        "purpose": "Diffuse depth beneath the desktop demo."
+      },
+      {
+        "name": "dialog-lifted",
+        "value": "0 28px 80px #1420183d",
+        "purpose": "Lift the quick switcher above the page."
+      }
+    ],
+    "motion": [
+      {
+        "name": "standard",
+        "value": "240ms cubic-bezier(.2,.8,.2,1)",
+        "purpose": "Primary-action fill and transform transitions."
+      },
+      {
+        "name": "reduced",
+        "value": "0ms",
+        "purpose": "Reduced-motion transition override; hover lift is removed."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "narrow-phone",
+        "value": "380px"
+      },
+      {
+        "name": "phone",
+        "value": "760px"
+      },
+      {
+        "name": "tablet",
+        "value": "1000px"
+      },
+      {
+        "name": "wide-desktop",
+        "value": "1500px"
+      }
+    ],
+    "backdrop": {
+      "value": "#1d2d236e",
+      "blur": "3px",
+      "purpose": "Native quick-switcher backdrop; blur removed for reduced motion."
+    },
+    "tonalRampNote": "Eight-step OKLCH ramps are synthesized preview metadata, not additional source color tokens."
+  },
+  "components": [
+    {
+      "name": "Primary Download",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The main Mac download action.",
+      "html": "<a class=\"ds-primary\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 3v12m-5-5 5 5 5-5M5 16v4h14v-4\"/></svg>Download for macOS</a>",
+      "css": ".ds-primary{font-family:'DM Sans',sans-serif;min-height:56px;padding:16px 23px;display:inline-flex;align-items:center;justify-content:center;gap:12px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;border:0;background:var(--dark,#253129);color:var(--white,#fffefa);transition:background var(--motion,240ms cubic-bezier(.2,.8,.2,1)),transform var(--motion,240ms cubic-bezier(.2,.8,.2,1))}.ds-primary:hover{background:#3d4d3e;transform:translateY(-2px)}@media(prefers-reduced-motion:reduce){.ds-primary{transition:none}.ds-primary:hover{transform:none}}:focus-visible{outline:3px solid #a4721f;outline-offset:4px}"
+    },
+    {
+      "name": "Text Action",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "A quiet secondary link.",
+      "html": "<a class=\"ds-text\" href=\"#\">Take a little look <span aria-hidden=\"true\">\u2193</span></a>",
+      "css": ".ds-text{font-family:'DM Sans',sans-serif;font-weight:500;font-size:15px;display:inline-flex;align-items:center;gap:14px;text-decoration:none;min-height:44px;color:var(--ink,#232c25)}.ds-text:hover{text-decoration:underline;text-underline-offset:5px}:focus-visible{outline:3px solid #a4721f;outline-offset:4px}"
+    },
+    {
+      "name": "Review Example",
+      "kind": "button",
+      "refersTo": "button-review",
+      "description": "The attention-resolution action inside the demo.",
+      "html": "<button class=\"ds-review\">Review example</button>",
+      "css": ".ds-review{font-family:'DM Sans',sans-serif;font-size:12px;min-height:44px;border:0;border-radius:6px;padding:10px 14px;background:#e8d39d;color:#493813;font-weight:600;cursor:pointer}:focus-visible{outline:3px solid #a4721f;outline-offset:4px}"
+    },
+    {
+      "name": "View Tab",
+      "kind": "nav",
+      "refersTo": "tab-selected",
+      "description": "Selected demo navigation item.",
+      "html": "<button class=\"ds-tab\" role=\"tab\" aria-selected=\"true\">Agents</button>",
+      "css": ".ds-tab{font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:11px;padding:10px 13px;min-height:46px;border:0;background:#d8dfc9;text-align:left;color:#2d402c;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer}:focus-visible{outline:3px solid #a4721f;outline-offset:4px}"
+    },
+    {
+      "name": "Attention Badge",
+      "kind": "chip",
+      "refersTo": "attention-badge",
+      "description": "An informational count attached to agent navigation.",
+      "html": "<span class=\"ds-badge\">1</span>",
+      "css": ".ds-badge{font-family:'DM Sans',sans-serif;display:inline-block;font-size:12px;background:#efe1bb;min-width:20px;padding:2px 5px;text-align:center;border-radius:5px;color:#775519}:focus-visible{outline:3px solid #a4721f;outline-offset:4px}"
+    },
+    {
+      "name": "Agent Row",
+      "kind": "button",
+      "refersTo": "agent-row",
+      "description": "A flat operational item with separate title and status.",
+      "html": "<button class=\"ds-agent\"><span class=\"ds-agent-mark\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\" width=\"21\" height=\"21\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 2v20M2 12h20M5 5l14 14M5 19 19 5M8 2l8 20M2 8l20 8M2 16l20-8M8 22l8-20\"/></svg></span><span class=\"ds-copy\"><strong>Choose a sharing default</strong><span>Little Atlas \u00b7 Claude Code</span></span><span class=\"ds-state\">Needs you</span></button>",
+      "css": ".ds-agent{font-family:'DM Sans',sans-serif;border:0;border-bottom:1px solid #e8eadf;display:grid;grid-template-columns:31px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;min-height:76px;padding:12px 0;background:transparent;text-align:left;border-radius:0;color:var(--ink,#232c25);cursor:pointer}.ds-agent:hover{background:#f2f3e9}.ds-agent-mark{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:6px;background:#f0e2d8;color:#a75a3d}.ds-copy{min-width:0}.ds-copy strong{display:block;font-weight:500;font-size:13px;line-height:1.5;overflow-wrap:anywhere}.ds-copy>span{font-size:12px;line-height:1.5;color:#737a6d;display:block;margin-top:3px}.ds-state{font-size:12px;line-height:1.5;text-align:right;color:#82601e;min-width:79px}:focus-visible{outline:3px solid #a4721f;outline-offset:4px}"
+    },
+    {
+      "name": "Switcher Search",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "A labeled search field in the quick switcher.",
+      "html": "<input class=\"ds-search\" type=\"search\" aria-label=\"Search example agents\" placeholder=\"Search a project, task, or harness\u2026\">",
+      "css": ".ds-search{font-family:'DM Sans',sans-serif;width:100%;height:48px;padding:10px 13px;border:1px solid #cbd1c0;border-radius:6px;background:#f8f9f2;color:var(--ink,#232c25);font-size:14px;caret-color:var(--accent,#80601f)}.ds-search::placeholder{color:#747d68}:focus-visible{outline:3px solid #a4721f;outline-offset:4px}"
+    },
+    {
+      "name": "Header Navigation",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "Quiet horizontal navigation with an underlined download link.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Main navigation\"><a href=\"#\">Try it</a><a href=\"#\">How it works</a><a class=\"ds-nav-download\" href=\"#\">Get the Mac app</a></nav>",
+      "css": ".ds-nav{font-family:'DM Sans',sans-serif;display:flex;gap:34px;align-items:center;font-size:14px;font-weight:500;color:var(--ink,#232c25);flex-wrap:wrap}.ds-nav a{color:inherit;text-decoration:none;min-height:44px;display:flex;align-items:center}.ds-nav .ds-nav-download{border-bottom:1px solid var(--ink,#232c25)}:focus-visible{outline:3px solid #a4721f;outline-offset:4px}"
+    },
+    {
+      "name": "Preview Container",
+      "kind": "card",
+      "refersTo": "demo-surface",
+      "description": "The raised olive shell around the product demo.",
+      "html": "<div class=\"ds-demo\"><div class=\"ds-menubar\"><strong>Swarmbell</strong></div><div class=\"ds-workspace\"><h3>Your agents, at a glance.</h3><p>Interactive demo \u00b7 example data</p></div></div>",
+      "css": ".ds-demo{font-family:'DM Sans',sans-serif;background:var(--soft,#eaecdf);border-radius:14px;overflow:hidden;box-shadow:0 26px 65px -30px #30372c40;color:var(--ink,#232c25)}.ds-menubar{min-height:52px;display:flex;align-items:center;padding:0 23px;background:#e0e4d6;font-size:12px}.ds-menubar strong{font-weight:600}.ds-workspace{padding:34px 35px 22px;background:var(--white,#fffefa)}.ds-workspace h3{font-size:24px;font-weight:500;line-height:1.25;letter-spacing:-.025em;margin:0 0 7px}.ds-workspace p{font-size:12px;line-height:1.5;color:var(--muted,#62685e);margin:0}:focus-visible{outline:3px solid #a4721f;outline-offset:4px}"
+    },
+    {
+      "name": "Quick Switcher Surface",
+      "kind": "custom",
+      "refersTo": "quick-switcher",
+      "description": "Warm, lifted modal with a real close target.",
+      "html": "<section class=\"ds-dialog\" role=\"dialog\" aria-label=\"Find your agent\"><div class=\"ds-switcher-top\"><h2>Find your agent.</h2><button class=\"ds-close\" aria-label=\"Close quick switcher\">Esc</button></div><p>Example data \u00b7 no real conversations opened</p></section>",
+      "css": ".ds-dialog{font-family:'DM Sans',sans-serif;border:0;border-radius:14px;padding:22px;width:min(600px,calc(100% - 32px));max-height:calc(100% - 48px);background:var(--white,#fffefa);color:var(--ink,#232c25);box-shadow:0 28px 80px #1420183d;overflow:auto}.ds-switcher-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:17px}.ds-switcher-top h2{font-size:21px;font-weight:500;letter-spacing:-.02em;margin:0}.ds-close{font-family:'DM Sans',sans-serif;border:1px solid var(--line,#d8dacd);border-radius:5px;padding:6px 9px;min-height:44px;min-width:44px;background:transparent;font-size:12px;color:var(--muted,#62685e);cursor:pointer}.ds-close:hover{color:var(--ink,#232c25);text-decoration:underline}.ds-dialog p{font-size:12px;color:#738067;line-height:1.6;margin:0}:focus-visible{outline:3px solid #a4721f;outline-offset:4px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "A little less checking",
+    "overview": "Swarmbell\u2019s website makes a quiet local utility feel warm and approachable. Warm paper, forest text, a honey-colored bell, generous whitespace, and italic serif emphasis carry the public reference direction the user chose and approved. This is the website\u2019s visual system; the native app\u2019s separate design record does not govern these surfaces.\n\nThe typography does most of the expressive work. Large centered statements introduce the product, while the interactive preview becomes deliberately denser and more operational. Muted olive layers keep that change in density connected to the surrounding editorial page.",
+    "keyCharacteristics": [
+      "Warm paper and forest text with restrained honey emphasis.",
+      "DM Sans structure paired with expressive italic Fraunces.",
+      "Generous editorial space around a compact, working product preview.",
+      "Quiet borders, soft corners, and diffuse depth at the demo and dialog."
+    ],
+    "rules": [
+      {
+        "name": "The Quiet Accent Rule",
+        "body": "Use honey and ochre for emphasis and attention; keep ordinary text in forest and supporting text in muted neutrals.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Voices Rule",
+        "body": "Use DM Sans for navigation, controls, and reading; reserve italic Fraunces for expressive headline phrases and the preview\u2019s quiet aside.",
+        "section": "typography"
+      },
+      {
+        "name": "The Lift Has a Purpose Rule",
+        "body": "Use diffuse shadows for the product preview and quick switcher; ordinary content stays on the page with separators rather than raised cards.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do preserve warm paper, forest text, and restrained ochre emphasis.",
+      "Do pair expressive serif phrases with a clear sans-serif reading hierarchy.",
+      "Do preserve visible keyboard focus, at least 44px action targets, and reduced-motion behavior.",
+      "Do let the operational preview become compact without losing labels or state names.",
+      "Do show fictional-demo and source-coverage context near the interface it qualifies."
+    ],
+    "donts": [
+      "Don't apply the native app\u2019s design system to this independently styled website.",
+      "Don't turn informational feature sections into a field of raised cards.",
+      "Don't use the serif for control labels or dense operational data.",
+      "Don't promote compact desktop metadata below 12px into a reusable type rule."
+    ]
+  }
+}

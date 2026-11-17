@@ -22,13 +22,13 @@ Show active-agent and needs-you counts in the macOS menu bar. A click lists sess
 
 ## Operating Context
 
-Local macOS app. Approximately five-second refresh requested. The user chose a new repository under `~/projects/personal`; this project is `~/projects/personal/agent-beacon`. The attached screenshot illustrates the existing crowded macOS menu bar; it contains no implementation instructions.
+Local macOS app. Approximately five-second refresh requested. The user chose a new repository under `~/projects/personal`; this project is `~/projects/personal/swarmbell`. The attached screenshot illustrates the existing crowded macOS menu bar; it contains no implementation instructions.
 
 ## Capabilities and Constraints
 
 Monitor sessions already running in the three harnesses. Keep monitoring inside the app; no hosted backend. Native-thread activation is required. The user subsequently requested building and running the actual menu bar app immediately, plus persistent measurements on every refresh and a dashboard with time series, weekday/hour histograms, weekly/monthly ranges and actionable statistics. Parallel subagents were explicitly requested.
 
-Chosen name: Agent Beacon. Open decisions: how much child-agent detail belongs in the headline counts; whether a completed result should become an unread attention item; remote-host coverage; terminal preference; final global shortcut. Proposed defaults are documented as proposals, not confirmed preferences.
+Chosen name: Swarmbell. Public site: swarmbell.ai; public source: andeplane/swarmbell. Free test downloads come first; a possible US$2.99 price remains undecided. The independent website takes its visual craft and pacing from Workalong without sharing its source or user data. Open decisions: how much child-agent detail belongs in the headline counts; whether a completed result should become an unread attention item; remote-host coverage; terminal preference; final global shortcut. Proposed defaults are documented as proposals, not confirmed preferences.
 
 ## Evidence on Hand
 

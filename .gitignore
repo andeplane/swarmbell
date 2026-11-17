@@ -7,3 +7,8 @@ work/
 outputs/
 dist/
 apps/ios/*.xcodeproj/
+
+# Local visual-review captures and isolated Sites tooling
+**/.impeccable/review/
+.sites-checkout*/
+.sites-runtime/

@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 struct PairingView: View {
-  @ObservedObject var model: BeaconPhoneModel
+  @ObservedObject var model: SwarmbellPhoneModel
   @State private var pairingText = ""
   @State private var scannerPresented = false
   @State private var forgetPresented = false
@@ -22,13 +22,13 @@ struct PairingView: View {
           NavigationLink("View agents") { AgentsView(model: model) }
         }
         Text(
-          "Agent Beacon on your Mac collects agent status. This iPhone receives it over an encrypted local connection while the app is open."
+          "Swarmbell on your Mac collects agent status. This iPhone receives it over an encrypted local connection while the app is open."
         )
         .font(.subheadline).foregroundStyle(.secondary)
       }
       Section(model.isPaired ? "Pair another Mac" : "Connect") {
         Text(
-          "On your Mac, open Agent Beacon → Settings → iPhone companion. Enable sharing, then scan the pairing code."
+          "On your Mac, open Swarmbell → Settings → iPhone companion. Enable sharing, then scan the pairing code."
         )
         .font(.subheadline)
         Button {
@@ -61,7 +61,7 @@ struct PairingView: View {
         if !model.isConnected {
           Section("Mac not appearing?") {
             Text(
-              "Keep sharing enabled on the Mac and connect both devices to the same Wi-Fi network. In iPhone Settings, allow Agent Beacon to access the Local Network."
+              "Keep sharing enabled on the Mac and connect both devices to the same Wi-Fi network. In iPhone Settings, allow Swarmbell to access the Local Network."
             )
             .font(.subheadline)
             Button("Open iPhone Settings") {
@@ -97,7 +97,7 @@ struct PairingView: View {
     ) {
       Button("Forget Mac", role: .destructive) { model.forget() }
     } message: {
-      Text("You can pair again using the code in Agent Beacon on your Mac.")
+      Text("You can pair again using the code in Swarmbell on your Mac.")
     }
   }
 }

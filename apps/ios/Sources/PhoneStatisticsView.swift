@@ -2,7 +2,7 @@ import Charts
 import SwiftUI
 
 struct PhoneStatisticsView: View {
-  @ObservedObject var model: BeaconPhoneModel
+  @ObservedObject var model: SwarmbellPhoneModel
   @State private var period = "week"
   var body: some View {
     NavigationStack {
@@ -113,7 +113,7 @@ struct PhoneStatisticsView: View {
             ContentUnavailableView(
               "No statistics received", systemImage: "chart.bar.xaxis",
               description: Text(
-                "Your paired Mac shares measured history while Agent Beacon is running. No sample history is added."
+                "Your paired Mac shares measured history while Swarmbell is running. No sample history is added."
               ))
           }
         }
