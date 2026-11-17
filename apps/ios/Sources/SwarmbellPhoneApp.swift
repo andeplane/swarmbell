@@ -20,8 +20,17 @@ struct SwarmbellPhoneApp: App {
       }
       .tint(.blue)
       .task { model.start() }
+      .onOpenURL { url in
+        guard url.scheme == "swarmbell" else { return }
+        switch url.host {
+        case "statistics": selectedTab = 1
+        case "connection": selectedTab = 2
+        case "agents": selectedTab = 0
+        default: break
+        }
+      }
       .onChange(of: model.receivedAt) { old, new in
-        if old == nil && new != nil { selectedTab = 0 }
+        if old == nil && new != nil && selectedTab == 2 { selectedTab = 0 }
       }
       .onChange(of: phase) { _, next in
         if next == .active { model.start() } else if next == .background { model.stop() }

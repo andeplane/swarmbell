@@ -15,54 +15,123 @@ final class CompanionSharing: ObservableObject {
   private var server: SwarmbellCompanionServer?
   private var reports: [String: Data] = [:]
   private var lastReports = Date.distantPast
+  private var history: HistoryStore?
+  private var startupTask: Task<Void, Never>?
+  private var startupIntent: UUID?
+  private let credentialOperation: @Sendable (Bool) throws -> SwarmbellPairingCredential
   // Existing pairings stay in their original Keychain service after the rebrand.
-  private let service = "local.agentbeacon.mac.companion"
+  private nonisolated static let service = "local.agentbeacon.mac.companion"
+  // Canceling a Task cannot interrupt an OS Keychain dialog. Serialize even canceled workers
+  // so a second enable/reset cannot race the first worker's credential read or creation.
+  private nonisolated static let credentialLock = NSLock()
 
-  init() {
+  init(
+    credentialOperation: @escaping @Sendable (Bool) throws -> SwarmbellPairingCredential = {
+      try CompanionSharing.loadCredential(reset: $0)
+    }
+  ) {
+    self.credentialOperation = credentialOperation
     if UserDefaults.standard.bool(forKey: "companionSharingEnabled") { enable() }
   }
 
   func enable() {
-    guard server == nil else { return }
-    do {
-      let credential = try loadCredential()
-      let server = SwarmbellCompanionServer(credential: credential)
-      server.onStatus = { [weak self] message in
-        Task { @MainActor in self?.status = message }
-      }
-      server.onPeerCount = { [weak self] count in
-        Task { @MainActor in
-          self?.peerCount = count
-          self?.lastReports = .distantPast
+    guard server == nil, startupTask == nil else { return }
+    beginStartup(reset: false)
+  }
+
+  private func beginStartup(reset: Bool) {
+    let intent = UUID()
+    startupIntent = intent
+    enabled = true
+    status = reset ? "Resetting companion pairing…" : "Starting companion sharing…"
+    UserDefaults.standard.set(true, forKey: "companionSharingEnabled")
+    let operation = credentialOperation
+    startupTask = Task { [weak self] in
+      do {
+        // Security.framework may wait for macOS authorization. Never block app startup or
+        // the main actor while that dialog is pending; authentication itself is unchanged.
+        let worker = Task.detached(priority: .utility) { try operation(reset) }
+        let credential = try await withTaskCancellationHandler {
+          try await worker.value
+        } onCancel: {
+          worker.cancel()
         }
+        guard let self, self.startupIntent == intent, !Task.isCancelled else { return }
+        self.startupTask = nil
+        try self.startServer(credential: credential)
+        self.startupIntent = nil
+      } catch {
+        guard let self, self.startupIntent == intent, !Task.isCancelled else { return }
+        self.startupTask = nil
+        self.startupIntent = nil
+        self.server?.stop()
+        self.server = nil
+        self.pairingImage = nil
+        self.status =
+          reset
+          ? "Pairing could not be reset. Unlock your login Keychain and try again."
+          : "Pairing could not start. Check that your login Keychain is unlocked and try again."
+        self.enabled = false
       }
-      self.server = server
-      enabled = true
-      UserDefaults.standard.set(true, forKey: "companionSharingEnabled")
-      let filter = CIFilter.qrCodeGenerator()
-      filter.message = Data(credential.pairingURL.utf8)
-      if let output = filter.outputImage?.transformed(by: .init(scaleX: 8, y: 8)),
-        let image = CIContext().createCGImage(output, from: output.extent)
-      {
-        pairingImage = NSImage(cgImage: image, size: .init(width: 260, height: 260))
-      }
-      try server.start()
-    } catch {
-      server?.stop()
-      server = nil
-      pairingImage = nil
-      status = "Pairing could not start. Check that your login Keychain is unlocked and try again."
-      enabled = false
     }
   }
 
+  private func startServer(credential: SwarmbellPairingCredential) throws {
+    let server = SwarmbellCompanionServer(credential: credential)
+    server.onAnalyticsQuery = { [weak self, weak server] query in
+      guard let self, let server, self.enabled, self.server === server,
+        let history = self.history,
+        let timeZone = TimeZone(identifier: query.timeZoneID)
+      else { throw SwarmbellCompanionError.analyticsUnavailable }
+      try query.validate()
+      // Query existing persisted aggregates only. This never collects or changes agent state.
+      let report = try await history.report(
+        from: query.from, to: query.to, timeZone: timeZone,
+        harness: query.harness.flatMap(Harness.init(rawValue:)))
+      guard self.enabled, self.server === server, !Task.isCancelled else {
+        throw SwarmbellCompanionError.analyticsUnavailable
+      }
+      let encoder = JSONEncoder()
+      encoder.dateEncodingStrategy = .iso8601
+      return try encoder.encode(report)
+    }
+    server.onStatus = { [weak self, weak server] message in
+      Task { @MainActor in
+        guard let self, let server, self.server === server else { return }
+        self.status = message
+      }
+    }
+    server.onPeerCount = { [weak self, weak server] count in
+      Task { @MainActor in
+        guard let self, let server, self.server === server else { return }
+        self.peerCount = count
+        self.lastReports = .distantPast
+      }
+    }
+    self.server = server
+    enabled = true
+    UserDefaults.standard.set(true, forKey: "companionSharingEnabled")
+    let filter = CIFilter.qrCodeGenerator()
+    filter.message = Data(credential.pairingURL.utf8)
+    if let output = filter.outputImage?.transformed(by: .init(scaleX: 8, y: 8)),
+      let image = CIContext().createCGImage(output, from: output.extent)
+    {
+      pairingImage = NSImage(cgImage: image, size: .init(width: 260, height: 260))
+    }
+    try server.start()
+  }
+
   func stop() {
+    startupIntent = nil
+    startupTask?.cancel()
+    startupTask = nil
     server?.stop()
     server = nil
     enabled = false
     peerCount = 0
     pairingImage = nil
     reports = [:]
+    history = nil
     status = "Sharing is off"
   }
 
@@ -73,20 +142,12 @@ final class CompanionSharing: ObservableObject {
 
   func resetPairing() {
     disable()
-    let result = SecItemDelete(
-      [
-        kSecClass: kSecClassGenericPassword, kSecAttrService: service,
-        kSecAttrAccount: "pairing-v1",
-      ] as CFDictionary)
-    if result == errSecSuccess || result == errSecItemNotFound {
-      enable()
-    } else {
-      status = "Pairing could not be reset. Unlock your login Keychain and try again."
-    }
+    beginStartup(reset: true)
   }
 
   func publish(_ snapshot: MonitorSnapshot, history: HistoryStore?) async {
     guard enabled, let server else { return }
+    self.history = history
     let encoder = JSONEncoder()
     encoder.dateEncodingStrategy = .iso8601
     if peerCount > 0, Date().timeIntervalSince(lastReports) >= 30, let history {
@@ -112,7 +173,21 @@ final class CompanionSharing: ObservableObject {
     }
   }
 
-  private func loadCredential() throws -> SwarmbellPairingCredential {
+  private nonisolated static func loadCredential(reset: Bool) throws -> SwarmbellPairingCredential {
+    credentialLock.lock()
+    defer { credentialLock.unlock() }
+    try Task.checkCancellation()
+    if reset {
+      let result = SecItemDelete(
+        [
+          kSecClass: kSecClassGenericPassword, kSecAttrService: service,
+          kSecAttrAccount: "pairing-v1",
+        ] as CFDictionary)
+      guard result == errSecSuccess || result == errSecItemNotFound else {
+        throw SwarmbellError("Pairing key could not be reset")
+      }
+      try Task.checkCancellation()
+    }
     let query: [CFString: Any] = [
       kSecClass: kSecClassGenericPassword, kSecAttrService: service,
       kSecAttrAccount: "pairing-v1", kSecReturnData: true,
@@ -126,6 +201,7 @@ final class CompanionSharing: ObservableObject {
       return try .init(pairingURL: url)
     }
     guard result == errSecItemNotFound else { throw SwarmbellError("Pairing key unavailable") }
+    try Task.checkCancellation()
     let credential = try SwarmbellPairingCredential.generate()
     let saved = SecItemAdd(
       [

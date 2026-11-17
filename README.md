@@ -29,9 +29,11 @@ The initial downloadable test build is signed ad hoc and is not notarized by App
 
 ## iPhone companion
 
-Swarmbell 0.3 includes an iPhone app with the live agent list, needs-you grouping, source details and week/month statistics. The Mac remains the only collector. The iPhone is a read-only companion on the same local network; it does not run coding agents or answer approvals.
+The 0.5 source includes an iPhone app with the live agent list, needs-you grouping, source details and full read-only statistics. Custom dates, harness filters and comparisons query the Mac’s persisted history; older Macs retain week/month reports. The Mac remains the only collector. The iPhone is a read-only companion on the same local network; it does not run coding agents or answer approvals.
 
 In the Mac's Settings, enable **Share with paired iPhone** and choose **Pair iPhone…**. On the phone, open **Connection → Scan QR code** and scan the private code. Allow Local Network access and camera access when requested. Pairing is stored in each device's Keychain. Closing the Mac app or putting the phone app in the background ends the connection; stale counts are not displayed as live. Reset pairing on the Mac to invalidate earlier phones.
+
+Home Screen and Lock Screen widgets show last-known active and needs-you counts with observation age. A read-only Apple Watch app and watch-face complications receive those aggregates through the phone. Apple controls background refresh timing; these surfaces do not claim continuous live updates.
 
 A locally installed Mac bundle may be placed at `~/Applications/Swarmbell.app`. The iPhone project and physical-device build steps are in [apps/ios](apps/ios/README.md). See [the companion protocol and validation](docs/iphone-companion.md).
 

@@ -53,8 +53,8 @@ cat > "$app_dir/Contents/Info.plist" <<'PLIST'
   <key>CFBundleExecutable</key><string>SwarmbellApp</string>
   <key>CFBundleIconFile</key><string>Swarmbell.icns</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>0.4.0</string>
-  <key>CFBundleVersion</key><string>7</string>
+  <key>CFBundleShortVersionString</key><string>0.5.0</string>
+  <key>CFBundleVersion</key><string>8</string>
   <key>NSLocalNetworkUsageDescription</key><string>Share live agent status and statistics with your paired Swarmbell iPhone.</string>
   <key>NSBonjourServices</key><array><string>_agentbeacon._tcp</string></array>
   <key>LSMinimumSystemVersion</key><string>13.0</string>

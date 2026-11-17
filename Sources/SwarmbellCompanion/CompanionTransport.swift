@@ -40,16 +40,22 @@ private func swarmbellUsesAuthenticatedPSK(_ connection: NWConnection) -> Bool {
 public final class SwarmbellCompanionServer {
   public var onStatus: ((String) -> Void)?
   public var onPeerCount: ((Int) -> Void)?
+  public var onAnalyticsQuery: ((SwarmbellAnalyticsQuery) async throws -> Data)?
   private let credential: SwarmbellPairingCredential
   private var listener: NWListener?
   private var peers: [UUID: Peer] = [:]
   private var latestFrame: Data?
+  private var runningQueries = 0
 
   private struct Peer {
     let connection: NWConnection
     var ready = false
     var sending = false
     var pending: Data?
+    var pendingResponse: Data?
+    var queryInFlight = false
+    var queryTask: Task<Void, Never>?
+    var readTimeout: Task<Void, Never>?
     var timeout: Task<Void, Never>?
   }
 
@@ -84,6 +90,8 @@ public final class SwarmbellCompanionServer {
     listener = nil
     for peer in peers.values {
       peer.timeout?.cancel()
+      peer.queryTask?.cancel()
+      peer.readTimeout?.cancel()
       peer.connection.cancel()
     }
     peers.removeAll()
@@ -93,6 +101,8 @@ public final class SwarmbellCompanionServer {
   }
 
   public func publish(envelope: SwarmbellCompanionEnvelope) throws {
+    var envelope = envelope
+    envelope.capabilities = [SwarmbellAnalyticsWire.capability]
     let frame = try SwarmbellCompanionWire.encode(envelope)
     latestFrame = frame
     for id in Array(peers.keys) where peers[id]?.ready == true { send(frame, to: id) }
@@ -124,10 +134,7 @@ public final class SwarmbellCompanionServer {
           self.peers[id]?.ready = true
           self.onPeerCount?(self.peers.values.filter(\.ready).count)
           if let frame = self.latestFrame { self.send(frame, to: id) }
-          // This protocol is server-push only. Any client application data is invalid.
-          connection.receive(minimumIncompleteLength: 1, maximumLength: 1) { _, _, _, _ in
-            Task { @MainActor in self.remove(id) }
-          }
+          self.receiveQueryHeader(from: id)
         case .failed, .cancelled, .waiting: self.remove(id)
         default: break
         }
@@ -139,15 +146,105 @@ public final class SwarmbellCompanionServer {
   private func remove(_ id: UUID) {
     guard let peer = peers.removeValue(forKey: id) else { return }
     peer.timeout?.cancel()
+    peer.queryTask?.cancel()
+    peer.readTimeout?.cancel()
     peer.connection.cancel()
     onPeerCount?(peers.values.filter(\.ready).count)
   }
 
-  private func send(_ frame: Data, to id: UUID) {
+  private func receiveQueryHeader(from id: UUID) {
+    receiveExactly(4, from: id) { [weak self] header in
+      guard let self else { return }
+      do {
+        let count = try SwarmbellAnalyticsWire.payloadLength(header: header)
+        self.peers[id]?.readTimeout = Task { [weak self] in
+          try? await Task.sleep(for: .seconds(15))
+          guard !Task.isCancelled else { return }
+          self?.remove(id)
+        }
+        self.receiveExactly(count, from: id) { [weak self] payload in
+          guard let self else { return }
+          self.peers[id]?.readTimeout?.cancel()
+          self.peers[id]?.readTimeout = nil
+          do {
+            let query = try SwarmbellAnalyticsWire.decode(payload)
+            guard self.peers[id]?.queryInFlight == false else {
+              self.remove(id)
+              return
+            }
+            self.peers[id]?.queryInFlight = true
+            self.run(query, for: id)
+            self.receiveQueryHeader(from: id)
+          } catch { self.remove(id) }
+        }
+      } catch { self.remove(id) }
+    }
+  }
+
+  private func receiveExactly(
+    _ count: Int, from id: UUID, completion: @escaping @MainActor (Data) -> Void
+  ) {
+    guard let peer = peers[id], peer.ready else { return }
+    peer.connection.receive(minimumIncompleteLength: count, maximumLength: count) {
+      [weak self] data, _, complete, error in
+      Task { @MainActor in
+        guard let self, self.peers[id] != nil else { return }
+        guard error == nil, let data, data.count == count else {
+          self.remove(id)
+          return
+        }
+        completion(data)
+        if complete { self.remove(id) }
+      }
+    }
+  }
+
+  private func run(_ query: SwarmbellAnalyticsQuery, for id: UUID) {
+    guard runningQueries < 2 else {
+      reply(.init(requestID: query.requestID, error: .busy), to: id)
+      return
+    }
+    guard let onAnalyticsQuery else {
+      reply(.init(requestID: query.requestID, error: .unavailable), to: id)
+      return
+    }
+    runningQueries += 1
+    peers[id]?.queryTask = Task { [weak self] in
+      guard let self else { return }
+      defer { self.runningQueries -= 1 }
+      let response: SwarmbellAnalyticsResponse
+      do {
+        let report = try await onAnalyticsQuery(query)
+        response = .init(requestID: query.requestID, reportData: report)
+      } catch {
+        // Never expose local filenames, database contents or underlying errors.
+        response = .init(requestID: query.requestID, error: .unavailable)
+      }
+      guard !Task.isCancelled, self.peers[id] != nil else { return }
+      self.peers[id]?.queryTask = nil
+      self.reply(response, to: id)
+    }
+  }
+
+  private func reply(_ response: SwarmbellAnalyticsResponse, to id: UUID) {
+    do { send(try SwarmbellAnalyticsWire.responseFrame(response), to: id, response: true) } catch {
+      remove(id)
+    }
+  }
+
+  private func send(_ frame: Data, to id: UUID, response: Bool = false) {
     guard let peer = peers[id], peer.ready else { return }
     if peer.sending {
       // Bounded backpressure: retain only the newest unsent refresh per peer.
-      peers[id]?.pending = frame
+      if response {
+        guard peer.pendingResponse == nil else {
+          remove(id)
+          return
+        }
+        peers[id]?.pendingResponse = frame
+      } else {
+        peers[id]?.pending = frame
+      }
       return
     }
     peers[id]?.sending = true
@@ -161,7 +258,11 @@ public final class SwarmbellCompanionServer {
             return
           }
           self.peers[id]?.sending = false
-          if let next = self.peers[id]?.pending {
+          if response { self.peers[id]?.queryInFlight = false }
+          if let next = self.peers[id]?.pendingResponse {
+            self.peers[id]?.pendingResponse = nil
+            self.send(next, to: id, response: true)
+          } else if let next = self.peers[id]?.pending {
             self.peers[id]?.pending = nil
             self.send(next, to: id)
           }
@@ -175,6 +276,10 @@ public final class SwarmbellCompanionClient {
   public var onStatus: ((String) -> Void)?
   public var onEnvelope: ((SwarmbellCompanionEnvelope) -> Void)?
   public var onConnectionChanged: ((Bool) -> Void)?
+  public var onAnalyticsResponse: ((SwarmbellAnalyticsResponse) -> Void)?
+  public private(set) var supportsAnalyticsQueries = false
+  private var analyticsPending = SwarmbellAnalyticsPendingRequest()
+  private var analyticsTimeout: Task<Void, Never>?
   private let credential: SwarmbellPairingCredential
   private var browser: NWBrowser?
   private var connection: NWConnection?
@@ -185,6 +290,41 @@ public final class SwarmbellCompanionClient {
   private var failureCount = 0
 
   public init(credential: SwarmbellPairingCredential) { self.credential = credential }
+
+  /// Available only after a new Mac explicitly advertises the read-only capability.
+  public func requestAnalytics(_ query: SwarmbellAnalyticsQuery) throws {
+    guard let connection, supportsAnalyticsQueries else {
+      throw SwarmbellCompanionError.analyticsUnavailable
+    }
+    let frame = try SwarmbellAnalyticsWire.encode(query)
+    try analyticsPending.begin(query.requestID, supported: supportsAnalyticsQueries)
+    analyticsTimeout = Task { [weak self, weak connection] in
+      try? await Task.sleep(for: .seconds(45))
+      guard !Task.isCancelled, let self, let connection, self.connection === connection,
+        self.analyticsPending.requestID == query.requestID
+      else { return }
+      self.disconnected(connection)
+    }
+    connection.send(
+      content: frame,
+      completion: .contentProcessed { [weak self, weak connection] error in
+        Task { @MainActor in
+          guard error != nil, let self, let connection, self.connection === connection else {
+            return
+          }
+          self.disconnected(connection)
+        }
+      })
+  }
+
+  private func clearAnalytics() {
+    supportsAnalyticsQueries = false
+    analyticsTimeout?.cancel()
+    analyticsTimeout = nil
+    let requestID = analyticsPending.requestID
+    analyticsPending.reset()
+    if let requestID { onAnalyticsResponse?(.init(requestID: requestID, error: .unavailable)) }
+  }
 
   public func start() {
     guard browser == nil else { return }
@@ -248,6 +388,7 @@ public final class SwarmbellCompanionClient {
     discoveryTimeout = nil
     let old = connection
     connection = nil
+    clearAnalytics()
     old?.cancel()
     endpoint = nil
     failureCount = 0
@@ -313,6 +454,7 @@ public final class SwarmbellCompanionClient {
   private func disconnected(_ old: NWConnection) {
     guard connection === old else { return }
     connection = nil
+    clearAnalytics()
     old.cancel()
     handshakeTimeout?.cancel()
     handshakeTimeout = nil
@@ -344,7 +486,17 @@ public final class SwarmbellCompanionClient {
           guard let self else { return }
           do {
             let envelope = try SwarmbellCompanionWire.decode(payload)
-            self.onEnvelope?(envelope)
+            if let response = envelope.analyticsResponse {
+              try self.analyticsPending.consume(response)
+              self.analyticsTimeout?.cancel()
+              self.analyticsTimeout = nil
+              self.onAnalyticsResponse?(response)
+            } else {
+              self.supportsAnalyticsQueries =
+                envelope.capabilities?.contains(
+                  SwarmbellAnalyticsWire.capability) == true
+              self.onEnvelope?(envelope)
+            }
             self.receiveHeader(connection)
           } catch {
             self.disconnected(connection)

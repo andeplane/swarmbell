@@ -3,12 +3,16 @@ import Security
 
 public enum SwarmbellCompanionError: Error, LocalizedError, Sendable {
   case invalidPairingCode, randomGenerationFailed, invalidFrame, unsupportedVersion
+  case invalidAnalyticsQuery, analyticsUnavailable, analyticsBusy
   public var errorDescription: String? {
     switch self {
     case .invalidPairingCode: "This is not a valid Swarmbell pairing code."
     case .randomGenerationFailed: "A secure pairing code could not be created."
     case .invalidFrame: "The companion sent an invalid or oversized message."
     case .unsupportedVersion: "This companion version is not supported."
+    case .invalidAnalyticsQuery: "Choose a valid statistics range of up to 366 days."
+    case .analyticsUnavailable: "Custom statistics are not available from this Mac."
+    case .analyticsBusy: "A statistics request is already in progress."
     }
   }
 }
@@ -73,10 +77,17 @@ public struct SwarmbellCompanionEnvelope: Codable, Sendable {
   public var generatedAt: Date
   public var snapshot: Data
   public var reports: [String: Data]
-  public init(generatedAt: Date, snapshot: Data, reports: [String: Data] = [:]) {
+  public var capabilities: [String]?
+  public var analyticsResponse: SwarmbellAnalyticsResponse?
+  public init(
+    generatedAt: Date, snapshot: Data, reports: [String: Data] = [:],
+    capabilities: [String]? = nil, analyticsResponse: SwarmbellAnalyticsResponse? = nil
+  ) {
     self.generatedAt = generatedAt
     self.snapshot = snapshot
     self.reports = reports
+    self.capabilities = capabilities
+    self.analyticsResponse = analyticsResponse
   }
 }
 
@@ -85,6 +96,7 @@ public enum SwarmbellCompanionWire {
   public static let maximumPayloadBytes = 8 * 1_024 * 1_024
   public static func encode(_ envelope: SwarmbellCompanionEnvelope) throws -> Data {
     guard envelope.version == 1 else { throw SwarmbellCompanionError.unsupportedVersion }
+    try envelope.analyticsResponse?.validate()
     let encoder = JSONEncoder()
     encoder.dateEncodingStrategy = .iso8601
     let payload = try encoder.encode(envelope)
@@ -108,6 +120,7 @@ public enum SwarmbellCompanionWire {
     decoder.dateDecodingStrategy = .iso8601
     let envelope = try decoder.decode(SwarmbellCompanionEnvelope.self, from: payload)
     guard envelope.version == 1 else { throw SwarmbellCompanionError.unsupportedVersion }
+    try envelope.analyticsResponse?.validate()
     return envelope
   }
 
