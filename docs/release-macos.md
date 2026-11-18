@@ -3,7 +3,8 @@
 Push a version tag such as `v0.5.2` on a commit already on `main`. Match the tag to
 `CFBundleShortVersionString` in `scripts/build-app.sh` and increment
 `CFBundleVersion`. To publish an existing tag, dispatch **Release macOS app**
-from the `main` branch with that tag.
+from the `main` branch with that tag. Select **Build, sign, notarize, and verify
+without publishing** to test credentials against any existing release tag.
 
 The workflow builds the app and its bundled CLI for Apple silicon and Intel,
 signs them with Developer ID, submits the ZIP for notarization, and staples
