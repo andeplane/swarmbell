@@ -34,7 +34,7 @@ final class WatchReceiver: NSObject, ObservableObject, WCSessionDelegate {
     guard WCSession.isSupported() else { return }
     let session = WCSession.default
     guard session.activationState == .activated, session.isReachable else { return }
-    session.sendMessage(["requestGlance": true], replyHandler: nil) { [weak self] _ in
+    session.sendMessage(["requestGlance": true], replyHandler: nil) { @Sendable [weak self] _ in
       Task { @MainActor [weak self] in self?.syncUnavailable = true }
     }
   }

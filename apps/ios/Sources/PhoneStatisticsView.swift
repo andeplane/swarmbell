@@ -52,7 +52,8 @@ struct PhoneStatisticsView: View {
 
   private var validCustomRange: Bool {
     let length = customTo.timeIntervalSince(customFrom)
-    return length > 0 && length <= 366 * 86_400 && customTo <= Date()
+    return length > 0 && length <= 366 * 86_400
+      && customTo.timeIntervalSince1970 <= Date().timeIntervalSince1970
   }
 
   var body: some View {

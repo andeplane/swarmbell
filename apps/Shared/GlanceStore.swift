@@ -43,9 +43,15 @@ struct GlanceStore: Sendable {
     try snapshot.validate()
     guard let directory, let fileURL else { throw StoreError.containerUnavailable }
     if let previous = load() {
-      guard snapshot.observedAt >= previous.observedAt else { return false }
-      if snapshot.observedAt == previous.observedAt {
-        guard snapshot.receivedAt >= previous.receivedAt, snapshot != previous else { return false }
+      // Compare numeric timestamps: the SDK's Date.>= symbol is unavailable on some Watch runtimes.
+      let observed = snapshot.observedAt.timeIntervalSince1970
+      let previousObserved = previous.observedAt.timeIntervalSince1970
+      guard observed >= previousObserved else { return false }
+      if observed == previousObserved {
+        guard
+          snapshot.receivedAt.timeIntervalSince1970 >= previous.receivedAt.timeIntervalSince1970,
+          snapshot != previous
+        else { return false }
       }
     }
     let manager = FileManager.default
