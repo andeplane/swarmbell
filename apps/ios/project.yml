@@ -10,8 +10,8 @@ packages:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    MARKETING_VERSION: 0.5.1
-    CURRENT_PROJECT_VERSION: 11
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: 12
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: ""
 targets:
@@ -20,7 +20,10 @@ targets:
     platform: iOS
     sources:
       - path: Sources
+      - path: PrivacyInfo.xcprivacy
+        buildPhase: resources
       - path: ../Shared
+        includes: ["*.swift"]
       - path: ../../Sources/SwarmbellCore/Models.swift
       - path: ../../Sources/SwarmbellCore/AnalyticsModels.swift
       - path: Assets.xcassets
@@ -60,6 +63,7 @@ targets:
     sources:
       - path: Widgets
       - path: ../Shared
+        includes: ["*.swift"]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.andeplane.AgentBeacon.widgets
@@ -79,6 +83,7 @@ targets:
     sources:
       - path: ../watch/Sources
       - path: ../Shared
+        includes: ["*.swift"]
       - path: ../watch/Assets.xcassets
     dependencies:
       - target: SwarmbellWatchWidgets
@@ -102,6 +107,7 @@ targets:
     sources:
       - path: ../watch/Widgets
       - path: ../Shared
+        includes: ["*.swift"]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.andeplane.AgentBeacon.watchkitapp.widgets
