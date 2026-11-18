@@ -30,7 +30,7 @@ public struct CodexProxyReader: CodexReading {
         "id": 1, "method": "initialize",
         "params": [
           "clientInfo": [
-            "name": "swarmbell", "title": "Swarmbell", "version": "0.4.0",
+            "name": "swarmbell", "title": "Swarmbell", "version": "0.5.1",
           ]
         ],
       ])
