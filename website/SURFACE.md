@@ -12,8 +12,8 @@ The user requested a similar site to Workalong, built independently. Inherit the
 - Visitor path: understand the menu-bar mechanism, try fictional agents and statistics, learn source limitations, then download and install.
 - Signature interaction: review one example attention item and see the needs-you count fall. Quick switcher searches example agents and returns focus to an inline detail. It never opens, approves, or changes a real agent.
 - Palette: warm ivory #f6f5ee, forest-black #232c25, olive surfaces #eaecdf, honey/ochre bell accent. Self-hosted DM Sans and italic Fraunces.
-- Download: free test build v0.4.0 for macOS 13+, Intel or Apple silicon. No waitlist, account, payment flow, or commitment to permanent free pricing.
-- Trust: ad-hoc signed, unnotarized Mac build disclosed before download, with normal macOS Privacy & Security instructions and source link. Never instruct visitors to disable Gatekeeper or strip quarantine.
+- Download: latest signed release, free during testing, for macOS 13+, Intel or Apple silicon. No waitlist, account, payment flow, or commitment to permanent free pricing.
+- Trust: Developer ID-signed and Apple-notarized Mac build, with installation steps and a source link.
 - Scope: supported source telemetry and exact-thread activation vary. No invented testimonials, usage metrics, billing amounts, native Cursor approval coverage, or App Store availability.
 - Responsive: demo side navigation becomes a compact horizontal strip; no overflow or clipped controls. Native dialog preserves focus; all controls support keyboard use; reduced motion is respected.
 

@@ -6,7 +6,7 @@ Formerly Agent Beacon. The app, Swift modules and command-line tools are now Swa
 
 ## Download the test build
 
-[Download Swarmbell for macOS](https://github.com/andeplane/swarmbell/releases/download/v0.4.0/Swarmbell-macOS-universal.zip) — macOS 13+, Apple silicon and Intel. Free during testing. The build is ad-hoc signed and unnotarized; [read the installation and upgrade instructions](docs/install.md).
+[Download Swarmbell for macOS](https://github.com/andeplane/swarmbell/releases/latest/download/Swarmbell-macOS-universal.zip) — macOS 13+, Apple silicon and Intel. Free during testing. The build is Developer ID signed and notarized by Apple; [read the installation and upgrade instructions](docs/install.md).
 
 Try the browser demo at [swarmbell.ai](https://swarmbell.ai). It uses labelled example data, never a visitor's local agents.
 
@@ -25,7 +25,7 @@ Look for the antenna icon and two counts in the menu bar. The first is confirmed
 
 Control–Option–Space opens a searchable quick switcher. Arrow keys move, Return activates the selected row, and Escape closes. The shortcut can be changed or disabled in Settings. Statistics is also accessible from the switcher. Command-W or the dashboard's Close button closes Statistics while collection continues. Command-Q quits the app, including collection. Hold Command and drag the menu bar item to reposition it.
 
-The initial downloadable test build is signed ad hoc and is not notarized by Apple. See [installation instructions](docs/install.md). It has no permanent Dock icon and does not install a login item automatically.
+The downloadable test build is Developer ID signed and notarized by Apple. See [installation instructions](docs/install.md). It has no permanent Dock icon and does not install a login item automatically.
 
 ## iPhone companion
 

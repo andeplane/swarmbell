@@ -1,0 +1,141 @@
+name: Release macOS app
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag (vMAJOR.MINOR.PATCH)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: macos-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
+    runs-on: macos-15
+    timeout-minutes: 45
+    environment: macos-release
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out the release commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          commit=$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")
+          git merge-base --is-ancestor "$commit" origin/main
+          git checkout --detach "$commit"
+          if [[ $(gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft' 2>/dev/null) == false ]]; then
+            echo "Release $RELEASE_TAG is already public."
+            echo "SKIP_PUBLICATION=1" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build and sign the universal app
+        if: env.SKIP_PUBLICATION != '1'
+        env:
+          CERTIFICATE_P12: ${{ secrets.DEVELOPER_ID_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+          DEVELOPER_ID_SHA1: ${{ vars.DEVELOPER_ID_SHA1 }}
+        run: |
+          set -euo pipefail
+          : "${CERTIFICATE_P12:?Missing Developer ID certificate}"
+          : "${CERTIFICATE_PASSWORD:?Missing Developer ID certificate password}"
+          : "${DEVELOPER_ID_SHA1:?Missing Developer ID SHA-1 fingerprint}"
+          umask 077
+          signing_dir=$(mktemp -d "$RUNNER_TEMP/swarmbell-signing.XXXXXX")
+          keychain="$signing_dir/signing.keychain-db"
+          trap 'security delete-keychain "$keychain" 2>/dev/null || true; rm -rf "$signing_dir"' EXIT
+          keychain_password=$(openssl rand -hex 24)
+          printf '%s' "$CERTIFICATE_P12" | base64 -D > "$signing_dir/identity.p12"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$signing_dir/identity.p12" -k "$keychain" -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain" >/dev/null
+          unset CERTIFICATE_P12 CERTIFICATE_PASSWORD
+          security list-keychains -d user -s "$keychain"
+          security find-identity -v -p codesigning "$keychain" | grep -F "$DEVELOPER_ID_SHA1" | grep -F 'Developer ID Application:'
+
+          app="$RUNNER_TEMP/Swarmbell.app"
+          SWARMBELL_SIGNING_IDENTITY="$DEVELOPER_ID_SHA1" scripts/build-app.sh "$app"
+          version=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$app/Contents/Info.plist")
+          if [[ "v$version" != "$RELEASE_TAG" ]]; then
+            echo "::error::Bundle version $version does not match tag $RELEASE_TAG"
+            exit 1
+          fi
+
+      - name: Notarize and verify the download
+        if: env.SKIP_PUBLICATION != '1'
+        env:
+          APPLE_NOTARY_KEY: ${{ secrets.APPLE_NOTARY_KEY }}
+          APPLE_NOTARY_KEY_ID: ${{ vars.APPLE_NOTARY_KEY_ID }}
+          APPLE_NOTARY_ISSUER: ${{ vars.APPLE_NOTARY_ISSUER }}
+        run: |
+          set -euo pipefail
+          : "${APPLE_NOTARY_KEY:?Missing App Store Connect team API key}"
+          : "${APPLE_NOTARY_KEY_ID:?Missing Apple notary key ID}"
+          : "${APPLE_NOTARY_ISSUER:?Missing Apple notary issuer ID}"
+          umask 077
+          notary_dir=$(mktemp -d "$RUNNER_TEMP/swarmbell-notary.XXXXXX")
+          trap 'rm -rf "$notary_dir"' EXIT
+          printf '%s\n' "$APPLE_NOTARY_KEY" > "$notary_dir/AuthKey.p8"
+          authentication=(--key "$notary_dir/AuthKey.p8" --key-id "$APPLE_NOTARY_KEY_ID" --issuer "$APPLE_NOTARY_ISSUER")
+          app="$RUNNER_TEMP/Swarmbell.app"
+          ditto -c -k --keepParent "$app" "$notary_dir/submission.zip"
+          xcrun notarytool submit "$notary_dir/submission.zip" "${authentication[@]}" --wait --timeout 25m --output-format json > "$notary_dir/result.json" || cat "$notary_dir/result.json"
+          if ! jq -e '.status == "Accepted"' "$notary_dir/result.json" >/dev/null; then
+            submission=$(jq -r '.id // empty' "$notary_dir/result.json")
+            if [[ -n "$submission" ]]; then
+              xcrun notarytool log "$submission" "${authentication[@]}" || true
+            fi
+            echo "::error::Apple did not accept the Swarmbell notarization submission"
+            exit 1
+          fi
+          xcrun stapler staple "$app"
+          ditto -c -k --keepParent "$app" "$RUNNER_TEMP/Swarmbell-macOS-universal.zip"
+          mkdir "$notary_dir/extracted"
+          ditto -x -k "$RUNNER_TEMP/Swarmbell-macOS-universal.zip" "$notary_dir/extracted"
+          extracted="$notary_dir/extracted/Swarmbell.app"
+          codesign --verify --deep --strict --all-architectures --verbose=2 "$extracted"
+          for executable in SwarmbellApp swarmbell; do
+            architectures=" $(lipo -archs "$extracted/Contents/MacOS/$executable") "
+            [[ "$architectures" == *" arm64 "* && "$architectures" == *" x86_64 "* ]]
+          done
+          xcrun stapler validate "$extracted"
+          spctl --assess --type execute --verbose=2 "$extracted"
+          cd "$RUNNER_TEMP"
+          shasum -a 256 Swarmbell-macOS-universal.zip > SHA256SUMS.txt
+
+      - name: Publish the verified download
+        if: env.SKIP_PUBLICATION != '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --verify-tag --draft --title "Swarmbell ${RELEASE_TAG#v}" --generate-notes
+          fi
+          [[ $(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft) == true ]]
+          gh release upload "$RELEASE_TAG" "$RUNNER_TEMP/Swarmbell-macOS-universal.zip" "$RUNNER_TEMP/SHA256SUMS.txt" --clobber
+          latest_tag=$(gh release view --json tagName --jq .tagName 2>/dev/null || true)
+          latest=true
+          if [[ "$latest_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] &&
+            [[ $(printf '%s\n' "$latest_tag" "$RELEASE_TAG" | sort -V | tail -1) != "$RELEASE_TAG" ]]; then
+            latest=false
+          fi
+          gh release edit "$RELEASE_TAG" --draft=false --prerelease=false --latest="$latest"
