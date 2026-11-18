@@ -184,8 +184,18 @@ final class AppModel: ObservableObject {
   var working: [AgentRecord] { agents.filter { $0.state == .working && $0.freshness == .current } }
   var other: [AgentRecord] { agents.filter { !($0.state.isActive && $0.freshness == .current) } }
   var sourceIssues: [ProviderStatus] { snapshot?.providers.filter { $0.health != .healthy } ?? [] }
+  var codexError: String? {
+    guard let codex = snapshot?.providers.first(where: { $0.harness == .codex }) else { return nil }
+    return codex.collectionError ?? (codex.health == .unavailable ? codex.message : nil)
+  }
+
   var countsDescription: String {
     guard let counts = snapshot?.counts else { return "Checking your agents…" }
+    if codexError != nil {
+      return counts.active == 0
+        ? "Live count unavailable"
+        : "\(counts.active) confirmed active · \(counts.needsYou) need you"
+    }
     return "\(counts.active) active · \(counts.needsYou) need you"
   }
 }

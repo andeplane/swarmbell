@@ -120,10 +120,12 @@ public struct ProviderStatus: Codable, Equatable, Sendable {
   public var checkedAt: Date
   public var observesAttention: Bool
   public var scope: String
+  /// A collection failure that remains relevant when fallback data is available.
+  public var collectionError: String?
 
   public init(
     harness: Harness, health: SourceHealth, message: String, checkedAt: Date,
-    observesAttention: Bool, scope: String = "local sessions"
+    observesAttention: Bool, scope: String = "local sessions", collectionError: String? = nil
   ) {
     self.harness = harness
     self.health = health
@@ -131,6 +133,7 @@ public struct ProviderStatus: Codable, Equatable, Sendable {
     self.checkedAt = checkedAt
     self.observesAttention = observesAttention
     self.scope = scope
+    self.collectionError = collectionError
   }
 }
 

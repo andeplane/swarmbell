@@ -21,21 +21,35 @@ struct MenuBarContent: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
-      HStack(alignment: .firstTextBaseline) {
-        VStack(alignment: .leading, spacing: 4) {
-          Text("Swarmbell").font(.headline)
-          Text(model.countsDescription).font(.subheadline).foregroundStyle(.secondary)
+      VStack(alignment: .leading, spacing: 10) {
+        HStack(alignment: .firstTextBaseline) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Swarmbell").font(.headline)
+            Text(model.countsDescription).font(.subheadline).foregroundStyle(.secondary)
+          }
+          Spacer()
+          Button {
+            Task { await model.refresh() }
+          } label: {
+            Image(systemName: "arrow.clockwise").frame(width: 22, height: 22)
+          }
+          .buttonStyle(.borderless)
+          .disabled(model.isRefreshing)
+          .help("Refresh all sources")
+          .accessibilityLabel("Refresh all sources")
         }
-        Spacer()
-        Button {
-          Task { await model.refresh() }
-        } label: {
-          Image(systemName: "arrow.clockwise").frame(width: 22, height: 22)
+        if let error = model.codexError {
+          Label {
+            VStack(alignment: .leading, spacing: 3) {
+              Text("Codex desktop status unavailable").font(.subheadline.weight(.semibold))
+              Text(error).font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+          } icon: {
+            Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange)
+          }
+          .accessibilityElement(children: .combine)
         }
-        .buttonStyle(.borderless)
-        .disabled(model.isRefreshing)
-        .help("Refresh all sources")
-        .accessibilityLabel("Refresh all sources")
       }
       .padding(16)
       .measureMenuHeight(.header)
@@ -47,7 +61,7 @@ struct MenuBarContent: View {
           } else {
             if !model.attention.isEmpty { section("Needs you", agents: model.attention) }
             if !model.working.isEmpty { section("Working", agents: model.working) }
-            if model.attention.isEmpty && model.working.isEmpty {
+            if model.attention.isEmpty && model.working.isEmpty && model.codexError == nil {
               Label(
                 "No confirmed active agents",
                 systemImage: model.snapshot?.counts.incomplete == true

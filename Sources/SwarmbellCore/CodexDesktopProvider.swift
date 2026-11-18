@@ -25,8 +25,10 @@ public struct CodexDesktopProvider: AgentProvider {
   public func poll(at date: Date) async -> ProviderSnapshot {
     let observed = await observer.snapshot(at: date)
     guard observed.status.health == .unavailable, let fallback else { return observed }
-    let alternate = await fallback.poll(at: date)
-    return alternate.status.health == .unavailable ? observed : alternate
+    var alternate = await fallback.poll(at: date)
+    guard alternate.status.health != .unavailable else { return observed }
+    alternate.status.collectionError = observed.status.collectionError
+    return alternate
   }
 
   /// Shipped desktop code constructs this URI; activation still needs UI acceptance testing.
@@ -589,6 +591,8 @@ private struct CodexAsyncQuestionProjection {
 /// All mutable state is confined to the utility queue. Continuous draining prevents a
 /// quiet five-second polling interval from back-pressuring the desktop app's stream.
 private final class CodexIPCObserver: @unchecked Sendable {
+  // Codex can send a full conversation snapshot in one frame.
+  private static let maximumFrameMiB = 128
   private let queue = DispatchQueue(label: "local.swarmbell.codex-ipc", qos: .utility)
   private let socketPath: String
   private let stateDatabaseURL: URL
@@ -604,8 +608,9 @@ private final class CodexIPCObserver: @unchecked Sendable {
   private var candidateQueue: [(String, String)] = []
   private var subscriptionScheduled = false
   private var lastError = "Desktop observer has not connected"
+  private var frameError: String?
   private var lastAttempt = Date.distantPast
-  private let maximumFrameBytes = 32 * 1024 * 1024
+  private let maximumFrameBytes = maximumFrameMiB * 1024 * 1024
 
   init(socketPath: String, stateDatabaseURL: URL) {
     self.socketPath = socketPath
@@ -627,7 +632,9 @@ private final class CodexIPCObserver: @unchecked Sendable {
           self.disconnect("Desktop observer initialization timed out")
         }
         guard self.descriptor >= 0, self.clientID != nil else {
-          continuation.resume(returning: .unavailable(.codex, at: date, message: self.lastError))
+          var result = ProviderSnapshot.unavailable(.codex, at: date, message: self.lastError)
+          result.status.collectionError = self.frameError
+          continuation.resume(returning: result)
           return
         }
         // The broker staying alive does not prove that a particular renderer still
@@ -761,13 +768,13 @@ private final class CodexIPCObserver: @unchecked Sendable {
     guard descriptor >= 0 else { return }
     var bytes = [UInt8](repeating: 0, count: 65_536)
     for _ in 0..<128 {
-      let count = Darwin.read(descriptor, &bytes, bytes.count)
+      // Parse the buffered frames before reading past the memory limit. A
+      // maximum-sized frame can be immediately followed by another frame.
+      let available = maximumFrameBytes + 4 - incoming.count
+      guard available > 0 else { break }
+      let count = Darwin.read(descriptor, &bytes, min(bytes.count, available))
       if count > 0 {
         incoming.append(contentsOf: bytes.prefix(count))
-        guard incoming.count <= maximumFrameBytes + 65_536 else {
-          disconnect("Desktop stream exceeded the bounded input buffer")
-          return
-        }
       } else if count == 0 {
         disconnect("Codex desktop observer disconnected")
         return
@@ -785,8 +792,15 @@ private final class CodexIPCObserver: @unchecked Sendable {
       let length = incoming.prefix(4).enumerated().reduce(UInt32(0)) {
         $0 | UInt32($1.element) << ($1.offset * 8)
       }
-      guard length > 0, length <= maximumFrameBytes else {
-        disconnect("Desktop stream frame is unsupported or exceeds 32 MiB")
+      guard length > 0 else {
+        disconnect("Desktop stream frame has an invalid zero length")
+        return
+      }
+      guard length <= maximumFrameBytes else {
+        let error =
+          "Codex sent a \(length.formatted())-byte update. The limit is \(Self.maximumFrameMiB) MiB."
+        frameError = error
+        disconnect(error)
         return
       }
       let end = 4 + Int(length)
@@ -819,6 +833,7 @@ private final class CodexIPCObserver: @unchecked Sendable {
         let id = (value["result"] as? [String: Any])?["clientId"] as? String
       {
         clientID = id
+        frameError = nil
         for id in candidateThreadIDs() { enqueueSubscription(id: id, host: "local") }
         scheduleSubscription()
       }
