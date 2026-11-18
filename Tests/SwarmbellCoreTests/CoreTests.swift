@@ -302,3 +302,43 @@ func cursorStopStatuses(status: String, expected: AgentState) {
     try await SystemCommandRunner().run(executable: "/usr/bin/yes", arguments: [], timeout: 2)
   }
 }
+
+@Test func expiredCursorEventsArePrunedWhileCurrentSessionsRemainAvailable() async throws {
+  let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  defer { try? FileManager.default.removeItem(at: directory) }
+  let provider = CursorProvider(directory: directory)
+  try CursorSpool.write(
+    .init(receivedAt: instant, conversationID: "old", name: "beforeSubmitPrompt"), to: directory)
+  _ = await provider.poll(at: instant)
+  let later = instant.addingTimeInterval(86_401)
+  try CursorSpool.write(
+    .init(receivedAt: later, conversationID: "new", name: "beforeSubmitPrompt"), to: directory)
+  let snapshot = await provider.poll(at: later)
+  #expect(snapshot.agents.map(\.sessionID) == ["new"])
+  let files = try FileManager.default.contentsOfDirectory(atPath: directory.path)
+  #expect(files.count == 1)
+}
+
+@Test func codexProxySendsLoadedListParams() async throws {
+  let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+  defer { try? FileManager.default.removeItem(at: directory) }
+  let executable = directory.appendingPathComponent("codex")
+  let script = """
+    #!/bin/sh
+    read -r initialize
+    echo '{"id":1,"result":{}}'
+    read -r initialized
+    read -r list
+    case "$list" in
+      *'"params":{}'*) echo '{"id":2,"result":{"data":[],"nextCursor":null}}' ;;
+      *) echo '{"id":2,"error":{"message":"missing field params"}}' ;;
+    esac
+    read -r finished
+    """
+  try script.write(to: executable, atomically: true, encoding: .utf8)
+  try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
+  let reader = CodexProxyReader(executable: executable.path, socketPath: directory.path)
+  let threads = try await reader.loadedThreads()
+  #expect(String(decoding: threads, as: UTF8.self) == "[]")
+}

@@ -842,9 +842,11 @@ private final class CodexIPCObserver: @unchecked Sendable {
         }
       case "thread-archived":
         if let id = params["conversationId"] as? String ?? params["threadId"] as? String {
-          for (key, var projection) in projections where projection.id == id {
-            projection.valid = false
-            projections[key] = projection
+          let host = params["hostId"] as? String
+          candidateQueue.removeAll { $0.0 == id && (host == nil || $0.1 == host) }
+          for key in subscribed where host.map({ key == $0 + ":" + id }) ?? key.hasSuffix(":" + id)
+          {
+            retireSubscription(key)
           }
         }
       case "thread-stream-following-changed":
@@ -897,11 +899,28 @@ private final class CodexIPCObserver: @unchecked Sendable {
 
   private func enqueueSubscription(id: String, host: String) {
     guard UUID(uuidString: id) != nil, host.utf8.count <= 256,
-      subscribed.count + candidateQueue.count < 256, !subscribed.contains(host + ":" + id),
+      !subscribed.contains(host + ":" + id),
       !candidateQueue.contains(where: { $0.0 == id && $0.1 == host })
     else { return }
+    if subscribed.count + candidateQueue.count >= 256 {
+      // Seed candidates may never announce a state. Reclaim those slots first,
+      // then retire the oldest inactive or invalid projection.
+      let victim =
+        subscribed.first { projections[$0] == nil }
+        ?? projections.filter { !$0.value.valid || !$0.value.record(at: Date()).state.isActive }
+        .min { $0.value.lastEvent < $1.value.lastEvent }?.key
+      guard let victim else { return }
+      retireSubscription(victim)
+    }
     candidateQueue.append((id, host))
     scheduleSubscription()
+  }
+
+  private func retireSubscription(_ key: String) {
+    subscribed.remove(key)
+    projections.removeValue(forKey: key)
+    lastResyncAttempt.removeValue(forKey: key)
+    candidateQueue.removeAll { $0.1 + ":" + $0.0 == key }
   }
 
   private func scheduleSubscription() {

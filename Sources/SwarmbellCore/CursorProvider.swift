@@ -87,64 +87,74 @@ public enum CursorSpool {
   }
 }
 
-public struct CursorProvider: AgentProvider {
-  public let harness = Harness.cursor
+public actor CursorProvider: AgentProvider {
+  public nonisolated let harness = Harness.cursor
+  private var cachedEvents: [URL: CursorEvent] = [:]
   private let directory: URL
   public init(directory: URL = CursorSpool.defaultDirectory) { self.directory = directory }
 
   public func poll(at date: Date) async -> ProviderSnapshot {
-    let directory = directory
-    return await Task.detached(priority: .utility) {
-      let fm = FileManager.default
-      guard fm.fileExists(atPath: directory.path) else {
-        return .unavailable(
-          .cursor, at: date,
-          message:
-            "Cursor observer has not received an event; hooks are not installed by this prototype")
-      }
-      do {
-        let files = try fm.contentsOfDirectory(
-          at: directory, includingPropertiesForKeys: [.fileSizeKey]
-        )
-        .filter { $0.pathExtension == "json" }
-        guard files.count <= 20_000 else {
-          throw SwarmbellError("Cursor spool exceeds 20,000 events; archive it before continuing")
-        }
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .millisecondsSince1970
-        var events: [CursorEvent] = []
-        var malformed = 0
-        for file in files {
-          do {
+
+    let fm = FileManager.default
+    guard fm.fileExists(atPath: directory.path) else {
+      return .unavailable(
+        .cursor, at: date,
+        message:
+          "Cursor observer has not received an event; hooks are not installed by this prototype")
+    }
+    do {
+      let files = try fm.contentsOfDirectory(
+        at: directory, includingPropertiesForKeys: [.fileSizeKey]
+      )
+      .filter { $0.pathExtension == "json" }
+      let existing = Set(files)
+      cachedEvents = cachedEvents.filter { existing.contains($0.key) }
+      let decoder = JSONDecoder()
+      decoder.dateDecodingStrategy = .millisecondsSince1970
+      var events: [CursorEvent] = []
+      var malformed = 0
+      for file in files {
+        do {
+          let event: CursorEvent
+          if let cached = cachedEvents[file] {
+            event = cached
+          } else {
             let size = try file.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
             guard size <= 16_384 else {
               malformed += 1
               continue
             }
-            let event = try decoder.decode(CursorEvent.self, from: Data(contentsOf: file))
-            // A future clock jump must not keep a session alive indefinitely.
-            guard event.receivedAt <= date.addingTimeInterval(5) else {
-              malformed += 1
-              continue
-            }
-            if date.timeIntervalSince(event.receivedAt) <= 86_400 { events.append(event) }
-          } catch { malformed += 1 }
-        }
-        if events.isEmpty {
-          let ready = fm.fileExists(
-            atPath: directory.appendingPathComponent(CursorHookInstaller.markerFileName).path)
-          return .unavailable(
-            .cursor, at: date,
-            message: ready
-              ? "Cursor observer configured; waiting for its first lifecycle event"
-              : "No Cursor lifecycle events received; install the observer in Settings")
-        }
-        return Self.reduce(events, at: date, malformed: malformed)
-      } catch {
-        return .unavailable(
-          .cursor, at: date, message: "Cursor observer unavailable: \(error.localizedDescription)")
+            event = try decoder.decode(CursorEvent.self, from: Data(contentsOf: file))
+            cachedEvents[file] = event
+          }
+          // A future clock jump must not keep a session alive indefinitely.
+          guard event.receivedAt <= date.addingTimeInterval(5) else {
+            malformed += 1
+            continue
+          }
+          if date.timeIntervalSince(event.receivedAt) <= 86_400 {
+            events.append(event)
+          } else if UUID(uuidString: file.deletingPathExtension().lastPathComponent) != nil {
+            // Only expire immutable per-event files created by CursorSpool.
+            try fm.removeItem(at: file)
+            cachedEvents.removeValue(forKey: file)
+          }
+        } catch { malformed += 1 }
       }
-    }.value
+      if events.isEmpty {
+        let ready = fm.fileExists(
+          atPath: directory.appendingPathComponent(CursorHookInstaller.markerFileName).path)
+        return .unavailable(
+          .cursor, at: date,
+          message: ready
+            ? "Cursor observer configured; waiting for its first lifecycle event"
+            : "No Cursor lifecycle events received; install the observer in Settings")
+      }
+      return Self.reduce(events, at: date, malformed: malformed)
+    } catch {
+      return .unavailable(
+        .cursor, at: date, message: "Cursor observer unavailable: \(error.localizedDescription)")
+    }
   }
 
   public static func reduce(_ events: [CursorEvent], at date: Date, malformed: Int = 0)

@@ -8,11 +8,14 @@ final class PhoneWatchBridge: NSObject, WCSessionDelegate {
   static let shared = PhoneWatchBridge()
   private var latestData: Data?
   private var started = false
+  private let clearPendingKey = "watchGlanceClearPending"
 
   func start() {
     guard !started, WCSession.isSupported() else { return }
     started = true
-    if let snapshot = GlanceStore.shared.load() {
+    if UserDefaults.standard.bool(forKey: clearPendingKey) {
+      latestData = Data()
+    } else if let snapshot = GlanceStore.shared.load() {
       latestData = try? snapshot.encodedData()
     }
     let session = WCSession.default
@@ -22,15 +25,17 @@ final class PhoneWatchBridge: NSObject, WCSessionDelegate {
 
   func publish(_ snapshot: GlanceSnapshot) {
     guard let data = try? snapshot.encodedData() else { return }
-    latestData = data
     start()
+    UserDefaults.standard.removeObject(forKey: clearPendingKey)
+    latestData = data
     sendLatest()
   }
 
   func clear() {
     // An explicit tombstone removes old counts on the watch after unpairing.
-    latestData = Data()
+    UserDefaults.standard.set(true, forKey: clearPendingKey)
     start()
+    latestData = Data()
     sendLatest()
   }
 

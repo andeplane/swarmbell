@@ -96,7 +96,8 @@ struct AgentsView: View {
 
   private func filtered(_ snapshot: MonitorSnapshot) -> [AgentRecord] {
     snapshot.agents.filter { agent in
-      query.isEmpty
+      guard !agent.isSubagent else { return false }
+      return query.isEmpty
         || [agent.title, agent.workspace ?? "", agent.harness.phoneName]
           .contains { $0.localizedCaseInsensitiveContains(query) }
     }

@@ -152,8 +152,11 @@ final class AppModel: ObservableObject {
     let from =
       dashboardRange == .custom
       ? dashboardCustomFrom
-      : calendar.date(byAdding: .day, value: -dashboardRange.days, to: to) ?? to
+      : dashboardRange == .day
+        ? to.addingTimeInterval(-86_400)
+        : calendar.date(byAdding: .day, value: -dashboardRange.days, to: to) ?? to
     guard from < to else {
+      analyticsReport = nil
       analyticsError = "Choose an end date after the start date."
       isLoadingAnalytics = false
       return
@@ -168,6 +171,7 @@ final class AppModel: ObservableObject {
       lastAnalyticsRefresh = Date()
     } catch {
       guard request == analyticsRequest else { return }
+      analyticsReport = nil
       analyticsError = "Statistics could not be loaded: \(error.localizedDescription)"
     }
     if request == analyticsRequest { isLoadingAnalytics = false }

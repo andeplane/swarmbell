@@ -14,6 +14,8 @@ final class CompanionSharing: ObservableObject {
   @Published private(set) var pairingImage: NSImage?
   @Published private(set) var authorizationRequired = false
   private var server: SwarmbellCompanionServer?
+  private var pairingLink: String?
+  private let resetPendingKey = "companionPairingResetPending"
   private var reports: [String: Data] = [:]
   private var lastReports = Date.distantPast
   private var history: HistoryStore?
@@ -35,7 +37,10 @@ final class CompanionSharing: ObservableObject {
     }
   ) {
     self.credentialOperation = credentialOperation
-    if UserDefaults.standard.bool(forKey: "companionSharingEnabled") {
+    if UserDefaults.standard.bool(forKey: resetPendingKey) {
+      authorizationRequired = true
+      status = "Authorize sharing to finish resetting the previous pairing."
+    } else if UserDefaults.standard.bool(forKey: "companionSharingEnabled") {
       // Launch never summons an authorization dialog. Only a deliberate enable/retry may.
       beginStartup(reset: false, allowAuthorization: false)
     }
@@ -43,7 +48,8 @@ final class CompanionSharing: ObservableObject {
 
   func enable() {
     guard server == nil, startupTask == nil else { return }
-    beginStartup(reset: false, allowAuthorization: true)
+    beginStartup(
+      reset: UserDefaults.standard.bool(forKey: resetPendingKey), allowAuthorization: true)
   }
 
   private func beginStartup(reset: Bool, allowAuthorization: Bool) {
@@ -72,6 +78,7 @@ final class CompanionSharing: ObservableObject {
         guard let self, self.startupIntent == intent, !Task.isCancelled else { return }
         self.startupTask = nil
         try self.startServer(credential: credential)
+        if reset { UserDefaults.standard.removeObject(forKey: self.resetPendingKey) }
         self.startupIntent = nil
       } catch {
         guard let self, self.startupIntent == intent, !Task.isCancelled else { return }
@@ -79,6 +86,7 @@ final class CompanionSharing: ObservableObject {
         self.startupIntent = nil
         self.server?.stop()
         self.server = nil
+        self.pairingLink = nil
         self.pairingImage = nil
         if let accessError = error as? CredentialAccessError {
           self.authorizationRequired = true
@@ -86,12 +94,12 @@ final class CompanionSharing: ObservableObject {
           case .authorizationRequired:
             self.status =
               reset
-              ? "Pairing reset needs Keychain permission. Authorize sharing to reconnect, then choose Reset pairing again."
+              ? "Pairing reset needs Keychain permission. Choose Authorize sharing to finish the reset."
               : "Sharing needs permission to read your saved pairing. Choose Authorize sharing to let macOS ask."
           case .authorizationCanceled:
             self.status =
               reset
-              ? "Pairing reset authorization was canceled. Authorize sharing to reconnect, then choose Reset pairing again."
+              ? "Pairing reset authorization was canceled. Choose Authorize sharing to finish the reset."
               : "Keychain authorization was canceled. Your saved pairing is unchanged. Choose Authorize sharing to retry."
           }
         } else {
@@ -141,6 +149,7 @@ final class CompanionSharing: ObservableObject {
     enabled = true
     UserDefaults.standard.set(true, forKey: "companionSharingEnabled")
     let filter = CIFilter.qrCodeGenerator()
+    pairingLink = credential.pairingURL
     filter.message = Data(credential.pairingURL.utf8)
     if let output = filter.outputImage?.transformed(by: .init(scaleX: 8, y: 8)),
       let image = CIContext().createCGImage(output, from: output.extent)
@@ -159,6 +168,7 @@ final class CompanionSharing: ObservableObject {
     enabled = false
     authorizationRequired = false
     peerCount = 0
+    pairingLink = nil
     pairingImage = nil
     reports = [:]
     history = nil
@@ -170,7 +180,16 @@ final class CompanionSharing: ObservableObject {
     stop()
   }
 
+  func copyPairingLink() {
+    guard enabled, let pairingLink else { return }
+    let pasteboard = NSPasteboard.general
+    pasteboard.clearContents()
+    pasteboard.setData(Data(), forType: .init("org.nspasteboard.ConcealedType"))
+    pasteboard.setString(pairingLink, forType: .string)
+  }
+
   func resetPairing() {
+    UserDefaults.standard.set(true, forKey: resetPendingKey)
     disable()
     beginStartup(reset: true, allowAuthorization: true)
   }
@@ -301,6 +320,8 @@ struct CompanionSettingsSection: View {
         .font(.caption).foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
         HStack {
+          Button("Copy pairing link") { sharing.copyPairingLink() }.disabled(
+            sharing.pairingImage == nil)
           Button("Reset pairing…") { confirmReset = true }
           Spacer()
           Button("Done") { showPairing = false }.keyboardShortcut(.defaultAction)

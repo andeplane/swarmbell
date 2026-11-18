@@ -36,7 +36,7 @@ public struct CodexProxyReader: CodexReading {
       ])
       _ = try process.response(id: 1)
       try process.send(["method": "initialized", "params": [:]])
-      try process.send(["id": 2, "method": "thread/loaded/list"])
+      try process.send(["id": 2, "method": "thread/loaded/list", "params": [:]])
       let result = try process.response(id: 2)
       guard let ids = result["data"] as? [String], ids.count <= 256 else {
         throw SwarmbellError("Unexpected loaded-thread response or more than 256 loaded threads")

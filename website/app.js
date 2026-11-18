@@ -57,10 +57,15 @@ function renderDetail() {
     agent.state = 'working'; agent.age = 'Just now';
     agent.detail = 'Reviewed in this demo. The example session is now working, and the needs-you count has dropped. In Swarmbell, you make the actual decision in the original harness.';
     renderAgents(); announce('Example reviewed. The needs-you count is now zero. No real agent was changed.');
-    $(`[data-agent="${agent.id}"]`)?.focus();
+    ($(`[data-agent="${agent.id}"]`) ?? $('.status-filter.selected')).focus();
   });
 }
-function showDetail(id) { selectedId = selectedId === id && !dialog.open ? null : id; renderAgents(); }
+function showDetail(id) {
+  selectedId = selectedId === id ? null : id;
+  renderAgents();
+  if (selectedId) $('#close-detail').focus();
+  else $(`[data-agent="${id}"]`)?.focus();
+}
 $$('.status-filter').forEach((button) => button.addEventListener('click', () => {
   stateFilter = button.dataset.filter;
   $$('.status-filter').forEach((item) => { item.classList.toggle('selected', item === button); item.setAttribute('aria-pressed', String(item === button)); });
