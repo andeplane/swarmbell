@@ -21,7 +21,7 @@ cd swarmbell
 open "dist/Swarmbell.app"
 ```
 
-Look for the antenna icon and two counts in the menu bar. The first is confirmed active work plus sessions waiting on you; the second is needs-you. Counts are shown without a plus suffix. The tooltip and Limited coverage section explain source uncertainty separately. Click it for the session list, Statistics, Settings, and Quit.
+Look for the antenna icon and two counts in the menu bar. The first is confirmed active work plus sessions waiting on you; the second is needs-you. Counts are shown without a plus suffix. When Codex status is unavailable, a warning icon appears and the popover shows the error. With no confirmed activity, the menu bar shows a dash. The tooltip and Limited coverage section explain source uncertainty. Click it for the session list, Statistics, Settings, and Quit.
 
 Control–Option–Space opens a searchable quick switcher. Arrow keys move, Return activates the selected row, and Escape closes. The shortcut can be changed or disabled in Settings. Statistics is also accessible from the switcher. Command-W or the dashboard's Close button closes Statistics while collection continues. Command-Q quits the app, including collection. Hold Command and drag the menu bar item to reposition it.
 

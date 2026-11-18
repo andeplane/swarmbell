@@ -48,10 +48,6 @@ final class SwarmbellAppDelegate: NSObject, NSApplicationDelegate, NSWindowDeleg
     // Preserve the saved menu-bar position across the Swarmbell rebrand.
     statusItem.autosaveName = "AgentBeaconStatusItem"
     if let button = statusItem.button {
-      button.image = NSImage(
-        systemSymbolName: "bell",
-        accessibilityDescription: "Swarmbell")
-      button.image?.isTemplate = true
       button.imagePosition = .imageLeading
       button.target = self
       button.action = #selector(togglePopover)
@@ -249,10 +245,23 @@ final class SwarmbellAppDelegate: NSObject, NSApplicationDelegate, NSWindowDeleg
 
   private func updateStatusItem() {
     guard let button = statusItem?.button else { return }
+    let codexError = model.codexError
+    button.image = NSImage(
+      systemSymbolName: codexError == nil ? "bell" : "exclamationmark.triangle",
+      accessibilityDescription: nil)
+    button.image?.isTemplate = true
     guard let counts = model.snapshot?.counts else {
       button.title = " …"
       button.toolTip = "Swarmbell — checking your agents"
       button.setAccessibilityLabel("Swarmbell, checking your agents")
+      return
+    }
+    if let codexError, counts.active == 0 {
+      let message =
+        "Swarmbell, live count unavailable. Codex desktop status unavailable. \(codexError)"
+      button.title = " —"
+      button.toolTip = message
+      button.setAccessibilityLabel(message)
       return
     }
     let active = " \(counts.active)"
@@ -271,9 +280,13 @@ final class SwarmbellAppDelegate: NSObject, NSApplicationDelegate, NSWindowDeleg
             ? NSColor.systemOrange : NSColor.secondaryLabelColor,
         ]))
     button.attributedTitle = title
-    let text =
-      "Swarmbell: \(counts.active) confirmed active, \(counts.needsYou) need you"
-      + (counts.incomplete ? ". Partial source coverage; actual activity may be higher." : ".")
+    let status = "Swarmbell, \(counts.active) confirmed active, \(counts.needsYou) need you."
+    let text: String
+    if let codexError {
+      text = "\(status) Codex desktop status unavailable. \(codexError)"
+    } else {
+      text = status + (counts.incomplete ? " Partial source coverage. Activity may be higher." : "")
+    }
     button.toolTip = text
     button.setAccessibilityLabel(text)
   }
