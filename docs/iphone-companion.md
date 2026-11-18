@@ -50,3 +50,14 @@ Unpairing clears local counts and sends an explicit Watch clearing update.
 
 Source/build tests and physical device acceptance are recorded separately. See
 [companion setup](../apps/ios/README.md) and [aggregate schema](../apps/Shared/README.md).
+
+
+## Saved pairing authorization after a Mac update
+
+Launch restoration reads the existing Keychain item without opening an
+interaction dialog. If macOS needs permission for the updated app signature,
+Settings shows **Authorize sharing…**. That explicit retry may ask macOS to
+present its normal Keychain authorization prompt on a background worker, so
+collection and the menu bar stay responsive. Approve the system prompt yourself.
+Authorization failures do not replace the saved key or require a new QR pairing.
+Local development updates use the same installed signing identity when available.

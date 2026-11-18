@@ -1,3 +1,9 @@
-Swarmbell icon provenance — 17 November 2026
+Swarmbell icon provenance — 18 November 2026
 
-Current icon is original vector artwork in Resources/Swarmbell.svg, not an ImageGen output. A honey background and dark ink bell use the same shape on macOS and iPhone; the Mac source includes its transparent outer margin, while iOS applies the system mask to the full-square asset. Resources/README.md documents source colors and generated files. The earlier 0.3.1 blue beacon artwork is superseded.
+Current icon: Forest Chime, selected by the owner from five bell concepts.
+Generated with the built-in ImageGen tool. The exact original and prompt are
+Resources/ForestChime.png and Resources/ForestChime-prompt.txt. No AI edits were
+made to the selected artwork. Native platform exports resize it; macOS also has
+an inset rounded tile. iOS and watchOS supply their own masks.
+
+The earlier vector bell and 0.3.1 blue beacon artwork are superseded.

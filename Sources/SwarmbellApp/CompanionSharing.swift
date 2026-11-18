@@ -12,13 +12,17 @@ final class CompanionSharing: ObservableObject {
   @Published private(set) var status = "Sharing is off"
   @Published private(set) var peerCount = 0
   @Published private(set) var pairingImage: NSImage?
+  @Published private(set) var authorizationRequired = false
   private var server: SwarmbellCompanionServer?
   private var reports: [String: Data] = [:]
   private var lastReports = Date.distantPast
   private var history: HistoryStore?
   private var startupTask: Task<Void, Never>?
   private var startupIntent: UUID?
-  private let credentialOperation: @Sendable (Bool) throws -> SwarmbellPairingCredential
+  enum CredentialAccessError: Error {
+    case authorizationRequired, authorizationCanceled
+  }
+  private let credentialOperation: @Sendable (Bool, Bool) throws -> SwarmbellPairingCredential
   // Existing pairings stay in their original Keychain service after the rebrand.
   private nonisolated static let service = "local.agentbeacon.mac.companion"
   // Canceling a Task cannot interrupt an OS Keychain dialog. Serialize even canceled workers
@@ -26,31 +30,40 @@ final class CompanionSharing: ObservableObject {
   private nonisolated static let credentialLock = NSLock()
 
   init(
-    credentialOperation: @escaping @Sendable (Bool) throws -> SwarmbellPairingCredential = {
-      try CompanionSharing.loadCredential(reset: $0)
+    credentialOperation: @escaping @Sendable (Bool, Bool) throws -> SwarmbellPairingCredential = {
+      try CompanionSharing.loadCredential(reset: $0, allowAuthorization: $1)
     }
   ) {
     self.credentialOperation = credentialOperation
-    if UserDefaults.standard.bool(forKey: "companionSharingEnabled") { enable() }
+    if UserDefaults.standard.bool(forKey: "companionSharingEnabled") {
+      // Launch never summons an authorization dialog. Only a deliberate enable/retry may.
+      beginStartup(reset: false, allowAuthorization: false)
+    }
   }
 
   func enable() {
     guard server == nil, startupTask == nil else { return }
-    beginStartup(reset: false)
+    beginStartup(reset: false, allowAuthorization: true)
   }
 
-  private func beginStartup(reset: Bool) {
+  private func beginStartup(reset: Bool, allowAuthorization: Bool) {
     let intent = UUID()
     startupIntent = intent
     enabled = true
-    status = reset ? "Resetting companion pairing…" : "Starting companion sharing…"
+    authorizationRequired = false
+    status =
+      reset
+      ? "Resetting companion pairing…"
+      : (allowAuthorization
+        ? "Authorizing sharing. Respond to macOS Keychain if prompted."
+        : "Starting companion sharing…")
     UserDefaults.standard.set(true, forKey: "companionSharingEnabled")
     let operation = credentialOperation
     startupTask = Task { [weak self] in
       do {
         // Security.framework may wait for macOS authorization. Never block app startup or
         // the main actor while that dialog is pending; authentication itself is unchanged.
-        let worker = Task.detached(priority: .utility) { try operation(reset) }
+        let worker = Task.detached(priority: .utility) { try operation(reset, allowAuthorization) }
         let credential = try await withTaskCancellationHandler {
           try await worker.value
         } onCancel: {
@@ -67,10 +80,26 @@ final class CompanionSharing: ObservableObject {
         self.server?.stop()
         self.server = nil
         self.pairingImage = nil
-        self.status =
-          reset
-          ? "Pairing could not be reset. Unlock your login Keychain and try again."
-          : "Pairing could not start. Check that your login Keychain is unlocked and try again."
+        if let accessError = error as? CredentialAccessError {
+          self.authorizationRequired = true
+          switch accessError {
+          case .authorizationRequired:
+            self.status =
+              reset
+              ? "Pairing reset needs Keychain permission. Authorize sharing to reconnect, then choose Reset pairing again."
+              : "Sharing needs permission to read your saved pairing. Choose Authorize sharing to let macOS ask."
+          case .authorizationCanceled:
+            self.status =
+              reset
+              ? "Pairing reset authorization was canceled. Authorize sharing to reconnect, then choose Reset pairing again."
+              : "Keychain authorization was canceled. Your saved pairing is unchanged. Choose Authorize sharing to retry."
+          }
+        } else {
+          self.status =
+            reset
+            ? "Pairing could not be reset. Unlock your login Keychain and try again."
+            : "Pairing could not start. Check that your login Keychain is unlocked and try again."
+        }
         self.enabled = false
       }
     }
@@ -128,6 +157,7 @@ final class CompanionSharing: ObservableObject {
     server?.stop()
     server = nil
     enabled = false
+    authorizationRequired = false
     peerCount = 0
     pairingImage = nil
     reports = [:]
@@ -142,7 +172,7 @@ final class CompanionSharing: ObservableObject {
 
   func resetPairing() {
     disable()
-    beginStartup(reset: true)
+    beginStartup(reset: true, allowAuthorization: true)
   }
 
   func publish(_ snapshot: MonitorSnapshot, history: HistoryStore?) async {
@@ -173,16 +203,21 @@ final class CompanionSharing: ObservableObject {
     }
   }
 
-  private nonisolated static func loadCredential(reset: Bool) throws -> SwarmbellPairingCredential {
+  private nonisolated static func loadCredential(
+    reset: Bool, allowAuthorization: Bool
+  ) throws -> SwarmbellPairingCredential {
     credentialLock.lock()
     defer { credentialLock.unlock() }
     try Task.checkCancellation()
+    let authenticationUI =
+      allowAuthorization ? kSecUseAuthenticationUIAllow : kSecUseAuthenticationUIFail
     if reset {
       let result = SecItemDelete(
         [
           kSecClass: kSecClassGenericPassword, kSecAttrService: service,
-          kSecAttrAccount: "pairing-v1",
+          kSecAttrAccount: "pairing-v1", kSecUseAuthenticationUI: authenticationUI,
         ] as CFDictionary)
+      try checkAuthorizationResult(result)
       guard result == errSecSuccess || result == errSecItemNotFound else {
         throw SwarmbellError("Pairing key could not be reset")
       }
@@ -191,10 +226,11 @@ final class CompanionSharing: ObservableObject {
     let query: [CFString: Any] = [
       kSecClass: kSecClassGenericPassword, kSecAttrService: service,
       kSecAttrAccount: "pairing-v1", kSecReturnData: true,
-      kSecMatchLimit: kSecMatchLimitOne, kSecUseAuthenticationUI: kSecUseAuthenticationUIFail,
+      kSecMatchLimit: kSecMatchLimitOne, kSecUseAuthenticationUI: authenticationUI,
     ]
     var item: CFTypeRef?
     let result = SecItemCopyMatching(query as CFDictionary, &item)
+    try checkAuthorizationResult(result)
     if result == errSecSuccess, let data = item as? Data,
       let url = String(data: data, encoding: .utf8)
     {
@@ -208,9 +244,18 @@ final class CompanionSharing: ObservableObject {
         kSecClass: kSecClassGenericPassword, kSecAttrService: service,
         kSecAttrAccount: "pairing-v1", kSecValueData: Data(credential.pairingURL.utf8),
         kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+        kSecUseAuthenticationUI: authenticationUI,
       ] as CFDictionary, nil)
+    try checkAuthorizationResult(saved)
     guard saved == errSecSuccess else { throw SwarmbellError("Pairing key could not be saved") }
     return credential
+  }
+
+  private nonisolated static func checkAuthorizationResult(_ result: OSStatus) throws {
+    if result == errSecUserCanceled { throw CredentialAccessError.authorizationCanceled }
+    if result == errSecInteractionNotAllowed || result == errSecAuthFailed {
+      throw CredentialAccessError.authorizationRequired
+    }
   }
 }
 
@@ -227,6 +272,9 @@ struct CompanionSettingsSection: View {
           set: { $0 ? sharing.enable() : sharing.disable() }))
       Text(sharing.status).font(.caption).foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
+      if sharing.authorizationRequired && !sharing.enabled {
+        Button("Authorize sharing…") { sharing.enable() }
+      }
       if sharing.enabled {
         HStack {
           Button("Pair iPhone…") { showPairing = true }
