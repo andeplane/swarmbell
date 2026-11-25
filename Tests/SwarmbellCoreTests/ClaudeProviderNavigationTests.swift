@@ -64,3 +64,44 @@ private struct NavigationFixtureRunner: CommandRunning {
   #expect(row.navigation.arguments.isEmpty)
   #expect(row.navigation.url == nil)
 }
+
+@Test func claudePollIncludesLiveLetsSessionsAcrossProfilesWithoutDuplicates() async throws {
+  let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  defer { try? FileManager.default.removeItem(at: root) }
+  let cliID = UUID().uuidString
+  let letsID = UUID().uuidString
+  let staleID = UUID().uuidString
+  let start = "Mon Nov 23 22:09:18 2026"
+  for (profile, pid, id, processStart) in [
+    ("cred-one", 41, cliID, start),
+    ("cred-two", 42, letsID, start),
+    ("cred-two", 43, staleID, "stale process start"),
+  ] {
+    let directory = root.appendingPathComponent("\(profile)/sessions")
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    let data = try JSONSerialization.data(withJSONObject: [
+      "pid": pid, "sessionId": id, "pidDomain": "darwin", "procStart": processStart,
+      "entrypoint": "sdk-cli", "kind": "interactive", "status": "busy", "name": "Lets task",
+    ])
+    try data.write(to: directory.appendingPathComponent("\(pid).json"))
+  }
+  let registry = LetsClaudeRegistry(root: root, ownsProcess: { _, value in value == start })
+  let cli = NavigationFixtureRunner(
+    data: Data(
+      """
+      [{"sessionId":"\(cliID.lowercased())","status":"idle","name":"CLI task"}]
+      """.utf8))
+  let provider = ClaudeProvider(
+    executable: "/fixture/claude", runner: cli, navigationResolver: nil, letsRegistry: registry)
+  let result = await provider.poll(at: Date())
+  #expect(result.agents.map(\.title) == ["CLI task", "Lets task"])
+  #expect(result.agents.map(\.state) == [.idle, .working])
+  #expect(result.agents.last?.navigation.kind == .copySessionID)
+  #expect(result.status.health == .healthy)
+
+  let withoutCLI = await ClaudeProvider(
+    executable: nil, runner: cli, navigationResolver: nil, letsRegistry: registry
+  ).poll(at: Date())
+  #expect(Set(withoutCLI.agents.map(\.sessionID)) == [cliID, letsID])
+  #expect(withoutCLI.status.health == .partial)
+}
