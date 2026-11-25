@@ -5,17 +5,64 @@ public struct ClaudeProvider: AgentProvider {
   private let executable: String?
   private let runner: any CommandRunning
   private let navigationResolver: ClaudeNavigationResolver?
+  private let letsRegistry: LetsClaudeRegistry
   public init(
     executable: String? = Executables.find("claude"),
     runner: any CommandRunning = SystemCommandRunner(),
     navigationResolver: ClaudeNavigationResolver? = ClaudeNavigationResolver()
   ) {
+    self.init(
+      executable: executable, runner: runner, navigationResolver: navigationResolver,
+      letsRegistry: .init())
+  }
+
+  init(
+    executable: String?, runner: any CommandRunning, navigationResolver: ClaudeNavigationResolver?,
+    letsRegistry: LetsClaudeRegistry
+  ) {
     self.executable = executable
     self.runner = runner
     self.navigationResolver = navigationResolver
+    self.letsRegistry = letsRegistry
   }
 
   public func poll(at date: Date) async -> ProviderSnapshot {
+    var snapshot = await pollCLI(at: date)
+    let lets = letsRegistry.read()
+    guard !lets.sessions.isEmpty || lets.incomplete else { return snapshot }
+    snapshot.status.scope = "local Claude CLI and Lets sessions"
+    snapshot.status.observesAttention = snapshot.status.observesAttention || !lets.sessions.isEmpty
+    if snapshot.status.health == .unavailable {
+      snapshot.status.health = .partial
+      if !lets.sessions.isEmpty { snapshot.status.message += ". Lets sessions are available." }
+    } else if snapshot.status.health == .healthy {
+      snapshot.status.message = "Live session status via Claude CLI and Lets"
+    }
+    var seen = Set(snapshot.agents.map { $0.sessionID.lowercased() })
+    var unknown = false
+    for session in lets.sessions {
+      guard !InternalSessions.isMemoryObserver(workspace: session.cwd),
+        var row = Self.record(session, at: date, executable: "claude"),
+        seen.insert(row.sessionID.lowercased()).inserted
+      else { continue }
+      row.navigation = .init(
+        kind: .copySessionID,
+        explanation: "Copy the Claude session ID. Open the original conversation in Lets.")
+      unknown = unknown || row.state == .unknown
+      snapshot.agents.append(row)
+    }
+    if unknown {
+      snapshot.status.health = .partial
+      snapshot.status.message += ". Some Lets session states were not recognized."
+    }
+    if lets.incomplete {
+      snapshot.status.health = .partial
+      snapshot.status.message += "; Lets registry coverage incomplete"
+    }
+    return snapshot
+  }
+
+  private func pollCLI(at date: Date) async -> ProviderSnapshot {
     guard let executable else {
       return .unavailable(harness, at: date, message: "Claude CLI not found")
     }
@@ -57,46 +104,12 @@ public struct ClaudeProvider: AgentProvider {
     var agents: [AgentRecord] = []
     for row in rows {
       if InternalSessions.isMemoryObserver(workspace: row.cwd) { continue }
-      guard let id = row.sessionId ?? row.id, !id.isEmpty else {
+      guard let agent = record(row, at: date, executable: executable) else {
         unknown = true
         continue
       }
-      let state: AgentState
-      // Overall job state takes priority over the process's momentary idle/busy status.
-      switch row.state {
-      case "blocked": state = .needsYou
-      case "done": state = .finished
-      case "failed": state = .failed
-      case "stopped": state = .stopped
-      case "working": state = row.status == "waiting" ? .needsYou : .working
-      case nil:
-        switch row.status {
-        case "waiting": state = .needsYou
-        case "busy": state = .working
-        case "idle": state = .idle
-        default: state = .unknown
-        }
-      default: state = .unknown
-      }
-      if state == .unknown { unknown = true }
-      let navigation: Navigation
-      if row.kind == "background", let jobID = row.id {
-        navigation = .init(
-          kind: .attachInTerminal, executable: executable, arguments: ["attach", jobID],
-          explanation:
-            "Attach in a terminal; focusing the original terminal is a separate integration.")
-      } else {
-        navigation = .init(
-          kind: .resumeInTerminal, executable: executable, arguments: ["--resume", id],
-          explanation:
-            "Resume fallback only; do not resume while the original session is busy or blocked.")
-      }
-      agents.append(
-        .init(
-          harness: .claudeCode, sessionID: id, title: row.name ?? "Claude Code session",
-          workspace: row.cwd, state: state,
-          reason: state == .needsYou ? row.waitingFor ?? "Input needed" : nil,
-          lastSeen: date, navigation: navigation))
+      if agent.state == .unknown { unknown = true }
+      agents.append(agent)
     }
     return .init(
       status: .init(
@@ -106,7 +119,45 @@ public struct ClaudeProvider: AgentProvider {
         checkedAt: date, observesAttention: true), agents: agents)
   }
 
-  private struct Session: Decodable {
+  private static func record(_ row: Session, at date: Date, executable: String) -> AgentRecord? {
+    guard let id = row.sessionId ?? row.id, !id.isEmpty else { return nil }
+    let state: AgentState
+    // Overall job state takes priority over the process's momentary idle/busy status.
+    switch row.state {
+    case "blocked": state = .needsYou
+    case "done": state = .finished
+    case "failed": state = .failed
+    case "stopped": state = .stopped
+    case "working": state = row.status == "waiting" ? .needsYou : .working
+    case nil:
+      switch row.status {
+      case "waiting": state = .needsYou
+      case "busy": state = .working
+      case "idle": state = .idle
+      default: state = .unknown
+      }
+    default: state = .unknown
+    }
+    let navigation: Navigation
+    if row.kind == "background", let jobID = row.id {
+      navigation = .init(
+        kind: .attachInTerminal, executable: executable, arguments: ["attach", jobID],
+        explanation:
+          "Attach in a terminal; focusing the original terminal is a separate integration.")
+    } else {
+      navigation = .init(
+        kind: .resumeInTerminal, executable: executable, arguments: ["--resume", id],
+        explanation:
+          "Resume fallback only; do not resume while the original session is busy or blocked.")
+    }
+    return .init(
+      harness: .claudeCode, sessionID: id, title: row.name ?? "Claude Code session",
+      workspace: row.cwd, state: state,
+      reason: state == .needsYou ? row.waitingFor ?? "Input needed" : nil,
+      lastSeen: date, navigation: navigation)
+  }
+
+  struct Session: Decodable, Sendable {
     var id: String?
     var sessionId: String?
     var kind: String?
@@ -116,5 +167,8 @@ public struct ClaudeProvider: AgentProvider {
     var status: String?
     var waitingFor: String?
     var pid: Int?
+    var procStart: String?
+    var pidDomain: String?
+    var entrypoint: String?
   }
 }

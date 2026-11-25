@@ -77,6 +77,10 @@ public actor ClaudeNavigationResolver {
   /// Uses PID/path/parent metadata only, never process arguments or environment.
   /// A Terminal-hosted CLI with a similarly named saved Desktop record is not a match.
   public nonisolated static func isDesktopManaged(_ processID: Int) -> Bool {
+    isManaged(processID, appName: "Claude", bundleID: "com.anthropic.claudefordesktop")
+  }
+
+  nonisolated static func isManaged(_ processID: Int, appName: String, bundleID: String) -> Bool {
     guard processID > 1, processID <= Int(Int32.max) else { return false }
     var current = Int32(processID)
     var visited = Set<Int32>()
@@ -91,14 +95,14 @@ public actor ClaudeNavigationResolver {
       if proc_pidpath(current, &path, UInt32(path.count)) > 0 {
         let executable = String(
           decoding: path.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
-        if executable.hasSuffix("/Claude.app/Contents/MacOS/Claude") {
+        if executable.hasSuffix("/\(appName).app/Contents/MacOS/\(appName)") {
           let bundle = URL(fileURLWithPath: executable).deletingLastPathComponent()
             .deletingLastPathComponent().appendingPathComponent("Info.plist")
           guard let data = try? Data(contentsOf: bundle),
             let dictionary = try? PropertyListSerialization.propertyList(from: data, format: nil)
               as? [String: Any]
           else { return false }
-          return dictionary["CFBundleIdentifier"] as? String == "com.anthropic.claudefordesktop"
+          return dictionary["CFBundleIdentifier"] as? String == bundleID
         }
       }
       current = Int32(info.pbi_ppid)

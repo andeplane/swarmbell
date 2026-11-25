@@ -41,7 +41,7 @@ A locally installed Mac bundle may be placed at `~/Applications/Swarmbell.app`. 
 
 | Source | Implementation | Limits |
 |---|---|---|
-| Claude Code | Supported `claude agents --json --all` polling | Live working, blocked, idle and background states verified. Claude Desktop conversations resolve through verified live process ownership and local metadata; terminal-pane activation remains unavailable. |
+| Claude Code | `claude agents --json --all` polling and read-only Lets profile discovery | Live working, blocked, idle and background states from the CLI. Swarmbell also reads status from Claude's process registrations for live Lets sessions. Claude Desktop conversations resolve through verified process ownership and local metadata. Lets rows offer session ID copying. |
 | Codex desktop | Passive observation of existing desktop thread streams | Working states verified live. Pending asynchronous user questions are projected from bounded question/reply identifiers, including accepted-answer clearing. Private protocol pinned to installed package26.1103.60933; discovers64 recent candidate IDs plus live announcements. Only an existing owner can supply runtime state. Independent CLI/cloud hosts may be outside scope. |
 | Codex shared daemon | Read-only app-server proxy fallback | No daemon is started or resumed. Its default socket is currently absent on this Mac. |
 | Cursor | Passive lifecycle observer helper, safe hook setup in Settings | Running/completion events only for emitting sessions. Native approvals/questions and existing local-chat activation remain unverified. No event means unavailable, not a successful zero. |
